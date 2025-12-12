@@ -2,7 +2,7 @@
 
 ~~~~> npm start
 
-
+"   git restore --staged .env   " 
 
 ~~>  “bcrypt” → how internally works.
 
