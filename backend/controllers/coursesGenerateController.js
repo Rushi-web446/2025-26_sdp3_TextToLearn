@@ -1,53 +1,51 @@
 const Groq = require("groq-sdk").default;
+const { getOutline } = require("./getOutline");
 
 const generateCourse = async (req, res) => {
   try {
     const { prompt } = req.body;
 
-    console.log("\n\n User Prompt:", prompt, "\n\n");
+    if (!prompt) {
+      return res.status(400).json({ success: false, message: "Prompt required" });
+    }
 
-    // Initialize Groq client 
     const groq = new Groq({
       apiKey: process.env.GROQ_API_KEY
     });
 
-    // Call Groq API to extract topic and description
-    const message = await groq.chat.completions.create({
+    const response = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [
         {
           role: "user",
-          content: `Extract ONLY topic name and description from this prompt. Return valid JSON with exactly these two keys: "topicName" and "description". 
+          content: `
+Extract ONLY topicName and description.
+Return valid JSON only.
 
 Prompt: "${prompt}"
 
-Example format:
-{"topicName": "Topic Name Here", "description": "Description/requirements here"}`
+Example:
+{"topicName":"Topic","description":"Description"}
+`
         }
       ],
-      max_tokens: 500,
       temperature: 0.3
     });
 
-    // Extract response text
-    const responseText = message.choices[0].message.content;
-    
-    // Parse JSON response
-    const extractedData = JSON.parse(responseText);
+    const extracted = JSON.parse(
+      response.choices[0].message.content
+    );
 
-    console.log("\n\n\nExtracted Data:\n\n\n", extractedData);
+    // 🔑 Pass values safely
+    await getOutline(extracted.topicName, extracted.description);
 
-    // Send ONLY topic and description to frontend
     res.status(200).json({
       success: true,
-      data: {
-        topicName: extractedData.topicName,
-        description: extractedData.description
-      }
+      data: extracted
     });
 
   } catch (err) {
-    console.error('Error:', err);
+    console.error("ERROR:", err);
     res.status(500).json({
       success: false,
       message: err.message
