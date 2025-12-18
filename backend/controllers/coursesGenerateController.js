@@ -37,11 +37,14 @@ Example:
     );
 
     // 🔑 Pass values safely
-    await getOutline(extracted.topicName, extracted.description);
+    let content = await getOutline(extracted.topicName, extracted.description);
 
+          console.log("\n\n\n\n\n\n", content, "\n\n\n\n\n\n");
+
+          
     res.status(200).json({
       success: true,
-      data: extracted
+      data: content
     });
 
   } catch (err) {
