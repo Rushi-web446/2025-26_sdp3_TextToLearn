@@ -2,6 +2,14 @@ const Groq = require("groq-sdk").default;
 const { getOutline } = require("./getOutline");
 const Course = require("../models/course");
 const User = require("../models/user");
+const fs = require("fs");
+const path = require("path");
+
+// Load content prompt
+const contentPromptTemplate = fs.readFileSync(
+  path.join(__dirname, "../Prompts/content.txt"),
+  "utf-8"
+);
 
 const generateCourse = async (req, res) => {
   try {
@@ -95,4 +103,66 @@ Example:
   }
 };
 
-module.exports = { generateCourse };
+const generateCourseModule = async (req, res) => {
+  try {
+    const { moduleIndex } = req.params;
+    const { courseId } = req.body;
+    const userId = req.user.id;
+
+    if (!courseId) {
+      return res.status(400).json({ success: false, message: "Course ID required" });
+    }
+
+    const course = await Course.findOne({ _id: courseId, userId: userId });
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    const moduleToUpdate = course.modules.find(m => m.moduleIndex === parseInt(moduleIndex));
+    if (!moduleToUpdate) {
+      return res.status(404).json({ success: false, message: "Module not found" });
+    }
+
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
+
+    console.log(`Generating content for Module ${moduleIndex}: ${moduleToUpdate.title}`);
+
+    // Generate content for each topic
+    for (const topic of moduleToUpdate.topics) {
+      if (topic.content) continue; // Skip if already generated
+
+      const formattedPrompt = contentPromptTemplate
+        .replace("{{courseTitle}}", course.course.title)
+        .replace("{{moduleTitle}}", moduleToUpdate.title)
+        .replace("{{moduleDescription}}", moduleToUpdate.description)
+        .replace("{{topicTitle}}", topic.title);
+
+      const response = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: formattedPrompt }],
+        temperature: 0.5,
+      });
+
+      topic.content = response.choices[0].message.content;
+      console.log(`- Generated content for topic: ${topic.title}`);
+    }
+
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Module content generated successfully",
+      module: moduleToUpdate,
+    });
+  } catch (err) {
+    console.error("ERROR GENERATING MODULE CONTENT:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+module.exports = { generateCourse, generateCourseModule };

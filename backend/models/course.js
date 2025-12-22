@@ -5,6 +5,8 @@ const courseSchema = new mongoose.Schema(
         course: {
             title: { type: String, required: true },
             description: { type: String, required: true },
+            createdAt: { type: Date, default: Date.now },
+            lastAccessedAt: { type: Date, default: Date.now },
         },
         modules: [
             {
@@ -12,10 +14,12 @@ const courseSchema = new mongoose.Schema(
                 title: { type: String, required: true },
                 description: { type: String, required: true },
                 estimatedTime: { type: String, required: true },
+                isCompleted: { type: Boolean, default: false },
                 topics: [
                     {
                         title: { type: String, required: true },
                         content: { type: String, default: "" },
+                        isCompleted: { type: Boolean, default: false },
                     },
                 ],
             },
