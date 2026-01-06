@@ -12,17 +12,30 @@ app.use(express.json());
 connectDB(); // Connect to MongoDB
 
 // Import routes
-const authRoute = require('./routes/authRoute.js');
-const coursesRoute = require('./routes/coursesRoute.js');
+const authRoute = require('./routes/auth.route.js');
+const coursesRoute = require('./routes/course.route.js');
+const userRoute = require('./routes/user.route.js');
+
 
 
 // Routes
 app.get("/", (req, res) => {
-    res.send("Welcome to MERN API");
+    res.send("\n@@@Welcome to MERN API@@@\n");
 });
 
+
+
+
+
 app.use("/auth", authRoute);
-app.use("/courses", coursesRoute);
+app.use("/course", coursesRoute);
+app.use("/user", userRoute);
+
+
+
+
+
+
 
 
 
