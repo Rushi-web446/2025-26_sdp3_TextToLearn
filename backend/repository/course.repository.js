@@ -1,10 +1,12 @@
 const Course = require("../models/course");
 
 const findById = async (courseId) => {
+  console.log("\n\n\n\n  --> reaching :  backend/repository/course.repository.js . \n\n\n");
   return Course.findById(courseId);
 };
 
 const getModule = async (courseId, moduleIndex) => {
+  console.log("\n\n\n\n  --> reaching :  backend/repository/course.repository.js . \n\n\n");
   const course = await Course.findById(courseId);
   if (!course) return null;
 
@@ -14,6 +16,7 @@ const getModule = async (courseId, moduleIndex) => {
 };
 
 const getLesson = async (courseId, moduleIndex, lessonIndex) => {
+  console.log("\n\n\n\n  --> reaching :  backend/repository/course.repository.js . \n\n\n");
   const course = await Course.findById(courseId);
   if (!course) return null;
 
@@ -30,12 +33,14 @@ const getLesson = async (courseId, moduleIndex, lessonIndex) => {
 
 
 const saveCourseOutlineToDB = async (course) => {
+  console.log("\n\n\n\n  --> reaching :  backend/repository/course.repository.js . \n\n\n");
   const newCourse = await Course.create(course);
   return newCourse._id;
 }
 
 
 const findRecentCoursesByUser = async (userId, limit = 3) => {
+  console.log("\n\n\n\n  --> reaching :  backend/repository/course.repository.js . \n\n\n");
   return await Course.find({ userId })
     .sort({ lastAccessedAt: -1 })
     .limit(limit)
@@ -44,8 +49,9 @@ const findRecentCoursesByUser = async (userId, limit = 3) => {
 
 
 const updateLastAccessed = async (courseId) => {
+  console.log("\n\n\n\n  --> reaching :  backend/repository/course.repository.js . \n\n\n");
   return await Course.updateOne(
-    { _id: courseId },     
+    { _id: courseId },
     { $set: { lastAccessedAt: new Date() } }
   );
 };
@@ -139,6 +145,7 @@ const saveLesson = async (
   lessonIndex,
   lessonObj
 ) => {
+  console.log("\n\n\n\n  --> reaching :  backend/repository/course.repository.js . \n\n\n");
   // 1️⃣ Find course (ONLY ObjectId here)
   const course = await Course.findOne({ _id: courseId, userId });
   if (!course) return null;
@@ -180,7 +187,7 @@ module.exports = {
   findRecentCoursesByUser,
   updateLastAccessed,
   markLessonCompleted,
-    findLessonForUser,
+  findLessonForUser,
   checkLessonExistsForUser,
-saveLesson,
+  saveLesson,
 };

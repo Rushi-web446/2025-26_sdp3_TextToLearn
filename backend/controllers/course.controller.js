@@ -11,16 +11,14 @@ const {
 
 
 const saveCourseOutlineToDB = async (req, res) => {
+  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
-    console.log("))))))))))))))))))))))))))))))))))))))))))))))))))))))");
-    const { outline, data } = req.body;
+    const outline = req.body;
     const userId = req.user.id;
 
-    // Support both formats: { outline: { data: ... } } or { data: ... }
-    const actualOutline = outline?.data || data || outline;
 
     const savedCourse = await saveCourseOutlineToDBService({
-      outline: actualOutline,
+      outline: outline,
       userId,
     });
 
@@ -37,6 +35,7 @@ const saveCourseOutlineToDB = async (req, res) => {
 };
 
 const getRecentCourses = async (req, res) => {
+  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const userId = req.user.id; // comes from JWT middleware
 
@@ -57,6 +56,7 @@ const getRecentCourses = async (req, res) => {
 };
 
 const getCourseDetails = async (req, res) => {
+  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params.id;
     const userId = req.user.id;
@@ -79,6 +79,7 @@ const getCourseDetails = async (req, res) => {
 };
 
 const completeLesson = async (req, res) => {
+  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params.id;
     const userId = req.user.id; // 🔐 trusted
@@ -107,6 +108,7 @@ const completeLesson = async (req, res) => {
 };
 
 const getCurrentLessonContent = async (req, res) => {
+  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params;
     const userId = req.user.id;
@@ -135,6 +137,7 @@ const getCurrentLessonContent = async (req, res) => {
 };
 
 const checkLessonExists = async (req, res) => {
+  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params;
     const userId = req.user.id;
@@ -161,20 +164,15 @@ const checkLessonExists = async (req, res) => {
     });
   }
 };
+
+
 const saveLesson = async (req, res) => {
+  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const { courseId, moduleIndex, lessonIndex, lesson } = req.body;
 
     // We prefer the authenticated user
     const userId = req.user.id;
-
-    // However, if the frontend sends userId and it's mostly for validation or admin purposes, we could check it.
-    // For now, we trust req.user.id as the owner source of truth.
-    // Also user requested: "requested with lessonobject , courseid, userid, moduleid, lessonid"
-    // We expect `lesson` to be the "lessonobject".
-    // We expect `moduleIndex` to come from `moduleid` (or named moduleIndex in body).
-    // The user said "moduleid" in the prompt, but the repo uses "moduleIndex". 
-    // I will look for both to be safe/helpful.
 
     const mIndex = moduleIndex || req.body.moduleid || req.body.moduleId;
     const lIndex = lessonIndex || req.body.lessonid || req.body.lessonId;

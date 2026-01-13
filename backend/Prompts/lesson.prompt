@@ -41,17 +41,6 @@ MAIN POINTS (NON-NEGOTIABLE):
   • Avoid generic textbook language
   • Avoid repeating definitions
 
-YOUTUBE VIDEO QUERY (IMPORTANT):
-- videoQuery MUST be a realistic, copy-paste-ready YouTube search query.
-- It MUST:
-  • Include the exact lesson topic
-  • Include depth-oriented keywords like:
-    "explained intuitively", "step by step", "visual explanation", "with examples"
-  • Match the learner level (no advanced jargon for beginner lessons)
-- It MUST NOT:
-  • Be generic
-  • Contain placeholder wording
-  • Mention YouTube explicitly
 
 MCQ QUALITY RULES:
 - EXACTLY 6 to 8 MCQs.
@@ -68,26 +57,17 @@ EXAMPLES RULES:
 - The example MUST show how to THINK, not just final code.
 - Use pseudo-code or structured logic where appropriate.
 
-LEARNING OBJECTIVES:
-- EXACTLY 3 or 4 objectives.
-- Each must be measurable (Explain / Design / Analyze / Implement).
-
-VOCABULARY:
-- Include 4–6 essential terms only.
-- Each definition must be precise and lesson-specific.
 
 REQUIRED JSON SCHEMA (FOLLOW EXACTLY):
 
 {
   "title": "{{lesson.title}}",
   "description": "Concise but precise technical overview of the lesson.",
-  "learningObjectives": ["string"],
-  "videoQuery": "Search-optimized YouTube query for a deep educational explanation",
   "introduction": "Motivating real-world context explaining why this concept matters.",
   "mainPoints": [
     {
       "heading": "Clear, concept-focused title",
-      "explanation": "180–250 word deep explanation following the pedagogical depth contract."
+      "explanation": "***200-300*** word deep explanation following the pedagogical depth contract."
     }
   ],
   "examples": [
@@ -110,9 +90,6 @@ REQUIRED JSON SCHEMA (FOLLOW EXACTLY):
     "Another reputable learning resource"
   ],
   "summary": "3–5 concise, insight-focused takeaways.",
-  "vocabulary": [
-    "term: precise lesson-specific definition"
-  ]
 }
 
 FINAL SELF-CHECK:

@@ -1,8 +1,10 @@
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
 
 function Course() {
   const location = useLocation();
+  const { getAccessTokenSilently } = useAuth0();
   const [courseData, setCourseData] = useState(location.state?.courseData);
 
   useEffect(() => {
@@ -38,10 +40,12 @@ function Course() {
 
   const getStarted = async () => {
     try {
-      const res = await fetch(`http://localhost:3001/courses/generate/${currentModule}`, {
+      const token = await getAccessTokenSilently();
+      const res = await fetch(`http://localhost:3001/course/generate/${currentModule}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           courseId: courseData.course._id,
@@ -53,7 +57,6 @@ function Course() {
       }
 
       const data = await res.json();
-      console.log("Course started:", data);
     } catch (error) {
       console.error("Failed to start course:", error);
     }

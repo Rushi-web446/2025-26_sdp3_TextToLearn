@@ -12,10 +12,11 @@ const userSchema = new mongoose.Schema({
         unique: true,
         lowercase: true
     },
-    password: {
-        type: String,
-        required: true,
-        minlength: 6
+    auth0Id: {
+        type: String, // To link with Auth0 user
+        unique: true,
+        sparse: true, // Allows null/undefined values to not violate uniqueness for legacy users
+        required: true
     },
     createdAt: {
         type: Date,

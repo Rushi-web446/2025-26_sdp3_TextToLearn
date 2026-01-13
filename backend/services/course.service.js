@@ -9,6 +9,8 @@ const { findById, saveCourseOutlineToDB, findRecentCoursesByUser, updateLastAcce
 
 
 const saveCourseOutlineToDBService = async ({ outline, userId }) => {
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.service.js . \n\n\n");
+
   if (!outline?.course || !outline?.modules) {
     throw new Error("Invalid course outline structure");
   }
@@ -54,6 +56,7 @@ const saveCourseOutlineToDBService = async ({ outline, userId }) => {
 
 
 const getRecentCoursesService = async (userId) => {
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.service.js . \n\n\n");
   if (!userId) {
     throw new Error("User ID is required");
   }
@@ -71,6 +74,7 @@ const getRecentCoursesService = async (userId) => {
 
 
 const getCourseDetailsWithProgressService = async (courseId, userId) => {
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.service.js . \n\n\n");
   if (!courseId || !userId) {
     throw new Error("Course ID and User ID are required");
   }
@@ -212,6 +216,7 @@ const saveLessonService = async ({
   lessonIndex,
   lesson, // entire lesson object or content
 }) => {
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.service.js . \n\n\n");
   if (!courseId || !userId || !moduleIndex || !lessonIndex) {
     throw new Error("Missing required parameters for saving lesson");
   }

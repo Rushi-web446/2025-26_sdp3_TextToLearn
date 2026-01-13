@@ -5,8 +5,9 @@ const groq = new Grok({
 });
 
 const generateJsonFromLLM = async ({ prompt, maxTokens }) => {
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.generate.service.js . \n\n\n");
 
-  
+
   const response = await groq.chat.completions.create({
     model: "llama-3.1-8b-instant",
     messages: [
@@ -17,12 +18,12 @@ const generateJsonFromLLM = async ({ prompt, maxTokens }) => {
     max_tokens: maxTokens,
     response_format: { type: "json_object" },
   });
-  
+
   const raw = response?.choices?.[0]?.message?.content;
   if (!raw) {
     throw new Error("Empty response from LLM");
   }
-  
+
   try {
     return JSON.parse(raw.trim());
   } catch (err) {
@@ -33,21 +34,34 @@ const generateJsonFromLLM = async ({ prompt, maxTokens }) => {
 
 
 const generateTopicAndDesciptionService = async ({ prompt }) => {
-  
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.generate.service.js . \n\n\n");
+
   return generateJsonFromLLM({ prompt, maxTokens: 1000 });
 };
 
 const generateOutlineService = async ({ prompt }) => {
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.generate.service.js . \n\n\n");
   return generateJsonFromLLM({ prompt, maxTokens: 5000 });
 };
 
 
 const generateLessonService = async (prompt) => {
-  
-  console.log("\n\n\n\n @@@@@@@@@@@@@@@(((((((((  \n\n\n\n");
-  console.log(prompt);
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.generate.service.js . \n\n\n");
+
+
 
   return generateJsonFromLLM({ prompt, maxTokens: 8000 });
 };
 
-module.exports = { generateOutlineService, generateLessonService, generateTopicAndDesciptionService };
+
+const generateYouTubeQueryService = async (prompt) => {
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.generate.service.js . \n\n\n");
+
+  console.log(`\n\n\n\n reaching ${__filename} \n\n\n\n`);
+
+
+  return generateJsonFromLLM({ prompt, maxTokens: 3000 });
+};
+
+
+module.exports = { generateOutlineService, generateLessonService, generateTopicAndDesciptionService, generateYouTubeQueryService };

@@ -21,13 +21,12 @@ ABSOLUTE OUTPUT RULES (NON-NEGOTIABLE):
 5. All arrays MUST satisfy size constraints exactly.
 
 COURSE-LEVEL CONSTRAINTS:
-- Total modules MUST be between 4 and 6 (inclusive).
-- durationDays MUST be exactly 30.
+- Total modules MUST be between ***4 and 6*** (inclusive).
 - estimatedTotalTime MUST equal the SUM of all module estimatedTime values.
 
 MODULE-LEVEL CONSTRAINTS (CRITICAL):
 FOR EACH MODULE:
-- lessons array MUST contain AT LEAST 4 lessons AND AT MOST 6 lessons.
+- lessons array MUST contain AT LEAST ***4 lessons AND AT MOST 6*** lessons.
 - Fewer than 4 lessons → INVALID OUTPUT.
 - More than 6 lessons → INVALID OUTPUT.
 - difficultyLevel MUST follow strict progression:
@@ -41,11 +40,10 @@ LESSON-LEVEL CONSTRAINTS (CRITICAL):
 FOR EACH LESSON:
 - lessonIndex MUST start at 1 and increase sequentially within its module.
 - estimatedTime MUST be between 1.0 and 3.0 hours.
-- conceptDependencies MAY ONLY reference concepts or lessons from EARLIER modules or lessons.
 - lesson titles MUST be specific and non-generic.
 
 CURRICULUM COHERENCE RULES:
-- Modules MUST progress logically from fundamentals → application → mastery.
+- Modules MUST progress ***logically from fundamentals → application → mastery***.
 - No module may introduce advanced concepts before prerequisites.
 - excludedConcepts MUST list topics intentionally NOT covered.
 - coveredConcepts MUST be concrete, teachable concepts (not vague phrases).
@@ -63,22 +61,17 @@ MANDATORY JSON SCHEMA (FOLLOW EXACTLY):
     "title": "string",
     "description": "string",
     "courseObjective": "string",
-    "targetAudience": "string",
-    "durationDays": 30,
     "estimatedTotalTime": number,
     "skillsGained": ["string"],
-    "assessmentPlan": "string"
   },
   "modules": [
     {
       "moduleIndex": number,
-      "recommendedOrder": number,
       "title": "string",
       "description": "string (60–90 words)",
       "moduleObjective": "string",
       "difficultyLevel": "Beginner | Intermediate | Advanced",
       "estimatedTime": number,
-      "prerequisites": ["string"],
       "coveredConcepts": ["string"],
       "excludedConcepts": ["string"],
       "learningOutcomes": ["string"],
@@ -89,8 +82,6 @@ MANDATORY JSON SCHEMA (FOLLOW EXACTLY):
           "title": "string",
           "briefDescription": "string",
           "estimatedTime": number,
-          "deliverables": "string",
-          "conceptDependencies": ["string"]
         }
       ]
     }
@@ -105,4 +96,4 @@ Before responding, internally verify:
 - Difficulty progression is correct
 - JSON parses without error
 
-If ANY check fails → regenerate internally until ALL checks pass.
+If ANY check ***fails → regenerate*** internally until ALL checks pass.

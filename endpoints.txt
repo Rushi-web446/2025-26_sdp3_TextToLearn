@@ -378,7 +378,7 @@ http://localhost:3001/course/save/outline
             "provideMicroExercise": true
         }
     }
-    },
+},
 
 
 Save Course For User :
@@ -390,16 +390,10 @@ http://localhost:3001/user/save/course
 }
 
 
-http://localhost:3001/user/save/course
-
-{
-  "userId": "693817477eeb31ac53f71171",
-  "courseId": "695a97da1210cf5b5c749be4"
-}
 
 
 
- Get Recent Courses
+Get Recent Courses
 
 http://localhost:3001/courses/recent
 
@@ -440,4 +434,14 @@ Body (JSON):
 {
   "moduleIndex": 4,
   "lessonIndex": 1
+}
+
+
+Lesson generate 
+http://localhost:3001/course/generate/lesson
+
+{
+    "courseId":"696289d94b24a021ab1a8086",
+    "moduleId":1,
+    "lessonId":1
 }

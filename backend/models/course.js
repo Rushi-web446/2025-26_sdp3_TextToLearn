@@ -9,7 +9,6 @@ const lessonSchema = new mongoose.Schema(
     briefDescription: { type: String, required: true },
     estimatedTime: { type: String, required: true },
 
-    conceptDependencies: [{ type: String }], // must map to module.coveredConcepts
     deliverables: { type: String },
 
     // AI-generated lesson JSON (STRICT schema from your lesson prompt)
@@ -42,7 +41,6 @@ const moduleSchema = new mongoose.Schema(
 
     estimatedTime: { type: String, required: true },
 
-    prerequisites: [{ type: String }],
     coveredConcepts: [{ type: String }],
     excludedConcepts: [{ type: String }],
 
