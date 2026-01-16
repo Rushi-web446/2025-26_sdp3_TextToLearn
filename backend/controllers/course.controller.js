@@ -7,37 +7,38 @@ const {
   getLessonContentService,
   checkLessonExistsService,
   saveLessonService,
+  getYouTubeVideosService,
 } = require("../services/course.service");
 
 
 const saveCourseOutlineToDB = async (req, res) => {
-  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const outline = req.body;
-    const userId = req.user.id;
+    const userId = req.appUser._id;
 
+    console.log("OUTLINE RECEIVED:", JSON.stringify(outline, null, 2));
 
-    const savedCourse = await saveCourseOutlineToDBService({
-      outline: outline,
+    const savedCourseId = await saveCourseOutlineToDBService({
+      outline,
       userId,
     });
 
     return res.status(201).json({
       message: "Course outline saved successfully",
-      courseId: savedCourse._id,
+      courseId: savedCourseId,
     });
   } catch (error) {
-    console.error(error);
     return res.status(400).json({
       message: error.message || "Saving course outline failed",
     });
   }
 };
 
+
 const getRecentCourses = async (req, res) => {
   console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
-    const userId = req.user.id; // comes from JWT middleware
+    const userId = req.appUser._id; // comes from JWT middleware
 
     const courses = await getRecentCoursesService(userId);
 
@@ -59,7 +60,7 @@ const getCourseDetails = async (req, res) => {
   console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params.id;
-    const userId = req.user.id;
+    const userId = req.appUser._id;
 
     const result = await getCourseDetailsWithProgressService(courseId, userId);
 
@@ -82,7 +83,7 @@ const completeLesson = async (req, res) => {
   console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params.id;
-    const userId = req.user.id; // 🔐 trusted
+    const userId = req.appUser._id; // 🔐 trusted
 
     const { moduleIndex, lessonIndex } = req.body;
 
@@ -106,20 +107,24 @@ const completeLesson = async (req, res) => {
     });
   }
 };
-
 const getCurrentLessonContent = async (req, res) => {
-  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
-    const courseId = req.params;
-    const userId = req.user.id;
+    const courseId = req.params.id;
+    const userId = req.appUser._id;
+    const { moduleIndex, lessonIndex } = req.query;
 
-    const { moduleIndex, lessonIndex } = req.body;
+    if (moduleIndex === null || lessonIndex === null) {
+      return res.status(400).json({
+        success: false,
+        message: "moduleIndex and lessonIndex required",
+      });
+    }
 
     const data = await getLessonContentService({
       courseId,
       userId,
-      moduleIndex: parseInt(moduleIndex),
-      lessonIndex: parseInt(lessonIndex),
+      moduleIndex: Number(moduleIndex),
+      lessonIndex: Number(lessonIndex),
     });
 
     return res.status(200).json({
@@ -136,19 +141,43 @@ const getCurrentLessonContent = async (req, res) => {
   }
 };
 
-const checkLessonExists = async (req, res) => {
-  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
-  try {
-    const courseId = req.params;
-    const userId = req.user.id;
 
-    const { moduleIndex, lessonIndex } = req.body;
+const getYouTubeVideos = async (req, res) => {
+  try {
+    const query = req.body?.data?.query;
+    if (!query) throw new Error("Query missing");
+
+    const videos = await getYouTubeVideosService(query);
+    return res.status(200).json(videos);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+
+const checkLessonExists = async (req, res) => {
+  console.log("➡️ CHECK LESSON EXISTS");
+
+  try {
+    const courseId = req.params.id; // ✅ FIX
+    const userId = req.appUser._id;
+
+    const { moduleIndex, lessonIndex } = req.query; // ✅ GET → query
+
+    if (moduleIndex === null || lessonIndex === null) {
+      return res.status(400).json({
+        success: false,
+        message: "moduleIndex and lessonIndex required",
+      });
+    }
 
     const result = await checkLessonExistsService({
       courseId,
       userId,
-      moduleIndex: parseInt(moduleIndex),
-      lessonIndex: parseInt(lessonIndex),
+      moduleIndex: Number(moduleIndex),
+      lessonIndex: Number(lessonIndex),
     });
 
     return res.status(200).json({
@@ -167,24 +196,23 @@ const checkLessonExists = async (req, res) => {
 
 
 const saveLesson = async (req, res) => {
-  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const { courseId, moduleIndex, lessonIndex, lesson } = req.body;
+    const userId = req.appUser._id;
 
-    // We prefer the authenticated user
-    const userId = req.user.id;
-
-    const mIndex = moduleIndex || req.body.moduleid || req.body.moduleId;
-    const lIndex = lessonIndex || req.body.lessonid || req.body.lessonId;
-    const cId = courseId || req.body.courseid || req.body.courseId;
-    const lObj = lesson || req.body.lessonobject;
+    if (!courseId || moduleIndex === null || lessonIndex === null || !lesson) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required lesson data",
+      });
+    }
 
     const saved = await saveLessonService({
-      courseId: cId,
+      courseId,
       userId,
-      moduleIndex: mIndex,
-      lessonIndex: lIndex,
-      lesson: lObj,
+      moduleIndex: Number(moduleIndex),
+      lessonIndex: Number(lessonIndex),
+      lesson,
     });
 
     return res.status(200).json({
@@ -192,7 +220,6 @@ const saveLesson = async (req, res) => {
       message: "Lesson saved successfully",
       lesson: saved,
     });
-
   } catch (error) {
     console.error("ERROR SAVING LESSON:", error);
     return res.status(400).json({
@@ -202,6 +229,7 @@ const saveLesson = async (req, res) => {
   }
 };
 
+
 module.exports = {
   saveCourseOutlineToDB,
   getRecentCourses,
@@ -210,4 +238,5 @@ module.exports = {
   getCurrentLessonContent,
   checkLessonExists,
   saveLesson,
+  getYouTubeVideos,
 };

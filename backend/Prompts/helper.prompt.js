@@ -6,16 +6,22 @@ const {
   getLesson,
 } = require("../repository/course.repository");
 
-const getOutlinePrompt = ({ topic, description }) => {
+const getOutlinePrompt = ({ topicName, description }) => {
+  console.log("topicName:", topicName);
+  console.log("description:", description);
+
+  if (!topicName || !description) {
+    throw new Error("topicName or description missing");
+  }
+
   const filePath = path.join(__dirname, "./outline.prompt");
-  const prompt = fs.readFileSync(filePath, "utf-8");
+  const promptTemplate = fs.readFileSync(filePath, "utf-8");
 
-  const finalPrompt = prompt
-    .replaceAll("{{topic}}", topic)
+  return promptTemplate
+    .replaceAll("{{topic}}", topicName)
     .replaceAll("{{description}}", description);
-
-  return finalPrompt;
 };
+
 
 const getFinalPrompt = (prompt, course, module, lesson) => {
 

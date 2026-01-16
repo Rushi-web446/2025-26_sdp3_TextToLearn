@@ -1,75 +1,66 @@
-// const User = require('../models/user');
-
-// const syncUser = async (req, res, next) => {
-//     try {
-//         const auth0Id = req.auth.payload.sub;
-//         const email = req.auth.payload[`${process.env.AUTH0_AUDIENCE}/email`] || req.auth.payload.email; // Namespace custom claim or standard claim
-
-//         let user = await User.findOne({ auth0Id });
-
-//         if (!user) {
-//             // Try finding by email to link legacy accounts (optional logic, be careful with security here)
-//             // For now, we'll assume we want to create a new user or link if email exists.
-//             user = await User.findOne({ email });
-
-//             if (user) {
-//                 // Link existing legacy user to Auth0 ID
-//                 user.auth0Id = auth0Id;
-//                 await user.save();
-//             } else {
-//                 // Create new user
-//                 user = new User({
-//                     auth0Id,
-//                     email, // You might need to add a rule in Auth0 to include email in token
-//                     name: email ? email.split('@')[0] : 'User', // Fallback name
-//                 });
-//                 await user.save();
-//             }
-//         }
-
-//         req.user = user; // Attach user to request object for downstream use
-//         console.log("Middleware: User synced successfully", user._id);
-//         next();
-//     } catch (error) {
-//         console.error("Error syncing user:", error);
-//         return res.status(500).json({ message: "Internal Server Error during user sync" });
-//     }
-// };
-
-// module.exports = syncUser;
-
-
-
 const User = require("../models/user");
 
-const axios = require("axios");
-
 const syncUser = async (req, res, next) => {
-  const accessToken = req.headers.authorization.split(" ")[1];
-
-  const { data } = await axios.get(
-    `https://dev-4xlxb5a75bgzk3js.us.auth0.com/userinfo`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+  try {
+    if (!req.auth || !req.auth.sub) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
-  );
 
-  const { sub, email, name } = data;
+    const auth0Id = req.auth.sub;
+    const namespace = "https://text-to-learn-api/";
 
-  let user = await User.findOne({ auth0Id: sub });
+    const email =
+      req.auth[`${namespace}email`] || req.auth.email;
 
-  if (!user) {
-    user = await User.create({
-      auth0Id: sub,
-      email,
-      name,
-    });
+    const name =
+      req.auth[`${namespace}name`] ||
+      req.auth.name ||
+      (email ? email.split("@")[0] : "User");
+
+
+
+      console.log(`\n\n\n\n : \n\n\n  name is : ${name} \n\n email is   : ${email}  \n\n  auth0Id is  :  ${auth0Id} \n\n\n\n`);
+
+
+    // 🔴 If email STILL missing, something is wrong in Auth0 Action
+    if (!email) {
+      return res.status(400).json({
+        message: "Email missing in token. Check Auth0 post-login action.",
+      });
+    }
+
+    // ✅ Atomic upsert (SAFE for login + signup)
+    const user = await User.findOneAndUpdate(
+      { auth0Id },
+      {
+        $setOnInsert: {
+          auth0Id,
+          email,
+          name,
+        },
+        $set: {
+          lastLogin: new Date(),
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+      }
+    );
+
+    req.appUser = user;
+    next();
+  } catch (error) {
+    if (error.code === 11000) {
+      return res
+        .status(409)
+        .json({ message: "Duplicate email detected" });
+    }
+
+    console.error("syncUser error:", error);
+    return res.status(500).json({ message: "User sync failed" });
   }
-
-  req.appUser = user;
-  next();
 };
 
 module.exports = syncUser;

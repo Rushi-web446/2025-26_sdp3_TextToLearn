@@ -23,7 +23,7 @@ const generateJsonFromLLM = async ({ prompt, maxTokens }) => {
   if (!raw) {
     throw new Error("Empty response from LLM");
   }
-
+  
   try {
     return JSON.parse(raw.trim());
   } catch (err) {
@@ -47,9 +47,6 @@ const generateOutlineService = async ({ prompt }) => {
 
 const generateLessonService = async (prompt) => {
   console.log("\n\n\n\n  --> reaching :  backend/services/course.generate.service.js . \n\n\n");
-
-
-
   return generateJsonFromLLM({ prompt, maxTokens: 8000 });
 };
 

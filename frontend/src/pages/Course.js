@@ -1,121 +1,113 @@
-import { useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useLocation, Navigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 
-function Course() {
+import useCourseDetails from "../hooks/useCourseDetails";
+import useCheckLessonExist from "../hooks/useCheckLessonExist";
+import useGenerateLesson from "../hooks/useGenerateLesson";
+import useSaveLesson from "../hooks/useSaveLesson";
+import useGetCurrentLesson from "../hooks/useGetCurrentLesson";
+import useGetYouTubeVideos from "../hooks/useGetYouTubeVideos";
+
+import LessonViewer from "../components/lesson/LessonViewer";
+
+const Course = () => {
   const location = useLocation();
-  const { getAccessTokenSilently } = useAuth0();
-  const [courseData, setCourseData] = useState(location.state?.courseData);
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
 
-  useEffect(() => {
-    // If we have data in state, save it to localStorage
-    if (location.state?.courseData) {
-      localStorage.setItem('lastCourse', JSON.stringify(location.state.courseData));
-      setCourseData(location.state.courseData);
-    } else {
-      // If state is missing (refresh), try loading from localStorage
-      const savedCourse = localStorage.getItem('lastCourse');
-      if (savedCourse) {
-        setCourseData(JSON.parse(savedCourse));
-      }
-    }
-  }, [location.state]);
+  const courseId = location.state?.courseId;
 
-  if (!courseData && !localStorage.getItem('lastCourse')) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h2>No course data found</h2>
-        <p>Please generate a course first.</p>
-        <button onClick={() => window.location.href = '/home'}>Go Home</button>
-      </div>
-    );
-  }
-
-  // Access data directly from the root structure
-  const title = courseData.course?.title || "Untitled Course";
-  const description = courseData.course?.description || "No description available";
-  const modules = courseData.modules || [];
-
-  let currentModule = 1;
-
-  const getStarted = async () => {
-    try {
-      const token = await getAccessTokenSilently();
-      const res = await fetch(`http://localhost:3001/course/generate/${currentModule}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          courseId: courseData.course._id,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data = await res.json();
-    } catch (error) {
-      console.error("Failed to start course:", error);
-    }
-  }
-
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>{title}</h1>
-      <p><strong>Description:</strong> {description}</p>
-
-
-      <button onClick={getStarted} style={{
-        padding: '12px 24px',
-        fontSize: '18px',
-        backgroundColor: '#bb86fc',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        margin: '20px 0'
-      }}>
-        Start Course
-      </button>
-
-      <br /><br />
-
-      <div style={{ marginTop: '30px' }}>
-        <h3>Modules:</h3>
-        {Array.isArray(modules) && modules.length > 0 ? (
-          <div>
-            {modules.map((module, index) => (
-              <div key={index} style={{
-                border: '1px solid #ddd',
-                padding: '15px',
-                marginBottom: '15px',
-                borderRadius: '8px'
-              }}>
-                <h4>Module {module.moduleIndex}: {module.title}</h4>
-                <p><strong>Description:</strong> {module.description}</p>
-                <p><strong>Estimated Time:</strong> {module.estimatedTime}</p>
-
-                <div style={{ marginTop: '10px' }}>
-                  <h5>Topics:</h5>
-                  <ul>
-                    {module.topics?.map((topic, i) => (
-                      <li key={i}>{topic.title || topic}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p>No modules available</p>
-        )}
-
-      </div>
-    </div>
+  // 1️⃣ course progress
+  const courseState = useCourseDetails(
+    isAuthenticated,
+    getAccessTokenSilently,
+    courseId
   );
-}
+
+  const { currentModuleIndex, currentLessonIndex } = courseState;
+
+  // 2️⃣ check lesson exists
+  const lessonExistState = useCheckLessonExist(
+    isAuthenticated,
+    getAccessTokenSilently,
+    courseId,
+    currentModuleIndex,
+    currentLessonIndex
+  );
+
+  // 3️⃣ generate lesson (ONLY if not exists)
+  const generatedLessonState = useGenerateLesson(
+    isAuthenticated,
+    getAccessTokenSilently,
+    courseId,
+    currentModuleIndex,
+    currentLessonIndex,
+    lessonExistState.exists
+  );
+
+  // 4️⃣ save generated lesson (ONLY if newly generated)
+  const saveLessonState = useSaveLesson(
+    isAuthenticated,
+    getAccessTokenSilently,
+    courseId,
+    currentModuleIndex,
+    currentLessonIndex,
+    generatedLessonState.data,
+    lessonExistState.exists
+  );
+
+  // 5️⃣ fetch current lesson (after save OR if already existed)
+  const currentLessonState = useGetCurrentLesson(
+    isAuthenticated,
+    getAccessTokenSilently,
+    courseId,
+    currentModuleIndex,
+    currentLessonIndex,
+    saveLessonState.saved || lessonExistState.exists
+  );
+
+  // 6️⃣ youtube videos
+  const youtubeState = useGetYouTubeVideos(
+    isAuthenticated,
+    getAccessTokenSilently,
+    courseId,
+    currentModuleIndex,
+    currentLessonIndex
+  );
+
+  if (!courseId) return <Navigate to="/" replace />;
+
+
+  if (
+    courseState.loading ||
+    lessonExistState.loading ||
+    generatedLessonState.loading ||
+    saveLessonState.loading ||
+    currentLessonState.loading ||
+    youtubeState.loading
+  ) {
+    return <h2>Loading lesson...</h2>;
+  }
+
+  if (courseState.error) return <h2>{courseState.error}</h2>;
+  if (currentLessonState.error) return <h2>{currentLessonState.error}</h2>;
+
+const normalizedLesson = currentLessonState.lesson
+  ? {
+      ...currentLessonState.lesson.content,
+      title: currentLessonState.lesson.title,
+      isCompleted: currentLessonState.lesson.isCompleted,
+      lessonIndex: currentLessonState.lesson.lessonIndex,
+    }
+  : null;
+
+return (
+  <LessonViewer
+    course={courseState.course}
+    lesson={normalizedLesson}
+    youtubeVideos={youtubeState.videos}
+    onNext={courseState.goToNextLesson}
+  />
+);
+};
 
 export default Course;

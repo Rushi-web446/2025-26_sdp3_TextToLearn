@@ -3,13 +3,13 @@ const { findById, saveCourseOutlineToDB, findRecentCoursesByUser, updateLastAcce
   findLessonForUser,
   checkLessonExistsForUser,
   saveLesson,
-
 } = require("../repository/course.repository");
 
+const {getYouTubeVideos} = require("../repository/YouTube.repository");
 
 
 const saveCourseOutlineToDBService = async ({ outline, userId }) => {
-  console.log("\n\n\n\n  --> reaching :  backend/services/course.service.js . \n\n\n");
+  console.log("\n\n\n\n  --> reaching :  backend/services/course.service.js  :::: . \n\n\n", outline, "\n\n");
 
   if (!outline?.course || !outline?.modules) {
     throw new Error("Invalid course outline structure");
@@ -46,7 +46,6 @@ const saveCourseOutlineToDBService = async ({ outline, userId }) => {
         briefDescription: l.briefDescription || "Lesson content",
         estimatedTime: l.estimatedTime || "1.5",
         deliverables: l.deliverables || "Complete the lesson exercise",
-        conceptDependencies: l.conceptDependencies || [],
       })),
     })),
   };
@@ -131,7 +130,7 @@ const completeLessonService = async ({
   moduleIndex,
   lessonIndex,
 }) => {
-  if (!courseId || !userId || !moduleIndex || !lessonIndex) {
+  if (!courseId || !userId || moduleIndex === null || lessonIndex === null) {
     throw new Error("Missing required parameters");
   }
 
@@ -187,6 +186,15 @@ const getLessonContentService = async ({
   };
 };
 
+const getYouTubeVideosService = async (query) => {
+    console.log("\n\n\n\n  --> reaching :  backend/services/YouTube.service.js . \n\n\n");
+    try {
+        return await getYouTubeVideos(query);
+    } catch (error) {
+        // Throw the original error so we know what happened
+        throw error;
+    }
+};
 
 const checkLessonExistsService = async ({
   courseId,
@@ -217,7 +225,7 @@ const saveLessonService = async ({
   lesson, // entire lesson object or content
 }) => {
   console.log("\n\n\n\n  --> reaching :  backend/services/course.service.js . \n\n\n");
-  if (!courseId || !userId || !moduleIndex || !lessonIndex) {
+  if (!courseId || !userId || moduleIndex === null || lessonIndex === null) {
     throw new Error("Missing required parameters for saving lesson");
   }
 
@@ -259,4 +267,5 @@ module.exports = {
   getLessonContentService,
   checkLessonExistsService,
   saveLessonService,
+  getYouTubeVideosService,
 };

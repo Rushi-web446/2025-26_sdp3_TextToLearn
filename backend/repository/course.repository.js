@@ -135,8 +135,9 @@ const checkLessonExistsForUser = async ({
     { _id: 1 }
   );
 
-  return !!course;
+  return Boolean(course.content);
 };
+
 
 const saveLesson = async (
   courseId,

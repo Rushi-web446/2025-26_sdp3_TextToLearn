@@ -1,81 +1,52 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useEffect, useState } from "react";
-import api from "../api/axios";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+
+import { useAuthSync } from "../hooks/useAuthSync";
+import { useRecentCourses } from "../hooks/useRecentCourses";
+import { useCourseGeneration } from "../hooks/useCourseGeneration";
 
 const Home = () => {
-  const { user, getAccessTokenSilently, logout, isAuthenticated } = useAuth0();
 
-  // UI state
+
+  const location = useLocation();
+
+  const navigate = useNavigate();
+  const { user, logout, isAuthenticated, getAccessTokenSilently,} = useAuth0();
+
   const [prompt, setPrompt] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  /**
-   * Purpose:
-   * Sync Auth0 user with backend DB
-   */
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  // 🔐 Sync user
+const userReady = useAuthSync(isAuthenticated, getAccessTokenSilently, user);
 
-    const syncUser = async () => {
-      try {
-        const token = await getAccessTokenSilently();
-        await api.get("/user/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      } catch (err) {
-        console.error("User sync failed", err);
-      }
-    };
 
-    syncUser();
-  }, [isAuthenticated, getAccessTokenSilently]);
 
-  /**
-   * Handle submit of input box
-   */
+const { courses, loading: coursesLoading } = useRecentCourses(
+  isAuthenticated,
+  userReady,
+  getAccessTokenSilently,
+  location.key // 👈 THIS is the trigger
+);
+
+  // ⚙️ Course generation
+  const { generateCourse, loading, error } = useCourseGeneration(
+    getAccessTokenSilently
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (prompt.trim().split(/\s+/).length < 5) {
-      setError("Please enter at least 5 words.");
+      alert("Enter at least 5 words");
       return;
     }
 
-    try {
-      setLoading(true);
-
-      const token = await getAccessTokenSilently();
-
-      const res = await api.post(
-        "/course/generate",
-        { prompt },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // console.log("Generated course:", res.data);
-
-      alert(`\n : \n ${res.data} \n : \n`);
-
-      // later → navigate or store result
-
-    } catch (err) {
-      console.error(err);
-      setError("Failed to generate course");
-    } finally {
-      setLoading(false);
-    }
+    const courseId = await generateCourse(prompt);
+    navigate("/course", { state: { courseId } });
   };
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "600px", margin: "auto" }}>
+    <div style={{ padding: "2rem", maxWidth: "700px", margin: "auto" }}>
       <h1>Welcome {user?.name}</h1>
 
       <button
@@ -86,9 +57,8 @@ const Home = () => {
         Logout
       </button>
 
-      <hr style={{ margin: "2rem 0" }} />
+      <hr />
 
-      {/* Input + Submit */}
       <form onSubmit={handleSubmit}>
         <textarea
           rows="4"
@@ -98,18 +68,42 @@ const Home = () => {
           style={{ width: "100%", padding: "10px" }}
         />
 
-        {error && (
-          <p style={{ color: "red", marginTop: "10px" }}>{error}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ marginTop: "15px" }}
-        >
+        <button disabled={loading} style={{ marginTop: "10px" }}>
           {loading ? "Generating..." : "Submit"}
         </button>
       </form>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <hr />
+
+      <h3>My Courses</h3>
+
+      {coursesLoading && <p>Loading courses...</p>}
+
+      {!coursesLoading && courses.length === 0 && <p>No courses yet</p>}
+
+      {courses.map((course) => (
+        <div
+          key={course.courseId}
+          style={{
+            border: "1px solid #ddd",
+            padding: "12px",
+            marginBottom: "10px",
+            cursor: "pointer",
+          }}
+          onClick={() =>
+            navigate("/course", {
+              state: {
+                courseId: course.courseId, // 👈 hidden state
+              },
+            })
+          }
+        >
+          <h4>{course.courseTitle}</h4>
+          <p>{course.courseDescription}</p>
+        </div>
+      ))}
     </div>
   );
 };

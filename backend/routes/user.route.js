@@ -1,9 +1,8 @@
 // const express = require("express");
 // const router = express.Router();
-// const { saveCourseForUser } = require("../controllers/user.controller");
+const { saveCourseForUser } = require("../controllers/user.controller");
 // const { protect } = require("../middleware/auth.js");
 
-// router.post("/save/course", protect, saveCourseForUser);
 
 
 // router.post("/sync", protect, (req, res) => {
@@ -24,6 +23,7 @@ const syncUser = require("../middleware/user.sync.middleware");
 
 const router = express.Router();
 
+router.post("/save/course", checkJwt, syncUser, saveCourseForUser);
 router.get("/me", checkJwt, syncUser, (req, res) => {
   res.json(req.appUser);
 });
