@@ -11,9 +11,8 @@ export const useRecentCourses = (
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // alert(`${userReady}`);
     if (!isAuthenticated || !userReady) return;
-    
+
     const loadCourses = async () => {
       try {
         setLoading(true);
@@ -27,7 +26,6 @@ export const useRecentCourses = (
         setCourses(res.data.courses || []);
       } catch (err) {
         console.error("Failed to load courses:", err);
-        alert("coming to catch");
         setCourses([]);
       } finally {
         setLoading(false);

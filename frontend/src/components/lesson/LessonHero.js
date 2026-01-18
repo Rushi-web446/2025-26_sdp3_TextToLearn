@@ -1,4 +1,3 @@
-import Section from "./Section";
 // components/lesson/LessonHero.jsx
 const LessonHero = ({ title, description }) => {
   return (

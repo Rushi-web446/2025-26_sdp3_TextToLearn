@@ -1,5 +1,5 @@
 // components/lesson/LessonNavigation.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const LessonNavigation = () => {
     const [activeSection, setActiveSection] = useState("");

@@ -1,113 +1,226 @@
-import { useLocation, Navigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
+import { useEffect, useRef, useState } from "react";
+import api from "../api/axios";
 
-import useCourseDetails from "../hooks/useCourseDetails";
-import useCheckLessonExist from "../hooks/useCheckLessonExist";
-import useGenerateLesson from "../hooks/useGenerateLesson";
-import useSaveLesson from "../hooks/useSaveLesson";
-import useGetCurrentLesson from "../hooks/useGetCurrentLesson";
-import useGetYouTubeVideos from "../hooks/useGetYouTubeVideos";
-
+import html2pdf from "html2pdf.js";
+import LessonPDF from "../components/lesson/LessonPDF";
 import LessonViewer from "../components/lesson/LessonViewer";
+import CourseSidebar from "../components/layout/CourseSidebar";
 
 const Course = () => {
-  const location = useLocation();
+  const navigate = useNavigate();
+  const { courseId, moduleIndex, lessonIndex } = useParams();
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const pdfRef = useRef();
 
-  const courseId = location.state?.courseId;
+  const [lesson, setLesson] = useState(null);
+  const [youtubeVideos, setYoutubeVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // 1️⃣ course progress
-  const courseState = useCourseDetails(
-    isAuthenticated,
-    getAccessTokenSilently,
-    courseId
-  );
+  // 🔥 FETCH EVERYTHING FROM ONE ENDPOINT
+  useEffect(() => {
+    if (!isAuthenticated || !courseId) return;
 
-  const { currentModuleIndex, currentLessonIndex } = courseState;
+    const fetchLesson = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-  // 2️⃣ check lesson exists
-  const lessonExistState = useCheckLessonExist(
-    isAuthenticated,
-    getAccessTokenSilently,
-    courseId,
-    currentModuleIndex,
-    currentLessonIndex
-  );
+        const token = await getAccessTokenSilently();
 
-  // 3️⃣ generate lesson (ONLY if not exists)
-  const generatedLessonState = useGenerateLesson(
-    isAuthenticated,
-    getAccessTokenSilently,
-    courseId,
-    currentModuleIndex,
-    currentLessonIndex,
-    lessonExistState.exists
-  );
+        const res = await api.get(`/course/fetch/${courseId}`, {
+          params: {
+            moduleIndex: Number(moduleIndex),
+            lessonIndex: Number(lessonIndex),
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  // 4️⃣ save generated lesson (ONLY if newly generated)
-  const saveLessonState = useSaveLesson(
-    isAuthenticated,
-    getAccessTokenSilently,
-    courseId,
-    currentModuleIndex,
-    currentLessonIndex,
-    generatedLessonState.data,
-    lessonExistState.exists
-  );
+        setLesson(res.data.lesson);
+        setYoutubeVideos(res.data.youtubeVideos || []);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load lesson");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // 5️⃣ fetch current lesson (after save OR if already existed)
-  const currentLessonState = useGetCurrentLesson(
+    fetchLesson();
+  }, [
     isAuthenticated,
     getAccessTokenSilently,
     courseId,
-    currentModuleIndex,
-    currentLessonIndex,
-    saveLessonState.saved || lessonExistState.exists
-  );
+    moduleIndex,
+    lessonIndex,
+  ]);
 
-  // 6️⃣ youtube videos
-  const youtubeState = useGetYouTubeVideos(
-    isAuthenticated,
-    getAccessTokenSilently,
-    courseId,
-    currentModuleIndex,
-    currentLessonIndex
-  );
+  // ✅ Mark complete → go to resolver
+  const onCompleteAndNext = async () => {
+    try {
+      const token = await getAccessTokenSilently();
 
-  if (!courseId) return <Navigate to="/" replace />;
+      await api.post(
+        `/course/complete/lesson/${courseId}`,
+        {
+          moduleIndex: Number(moduleIndex),
+          lessonIndex: Number(lessonIndex),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
+      // We don't alert anymore, just resolve the next step
+      navigate(`/course/${courseId}/resolve`, { replace: true });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to complete lesson");
+    }
+  };
 
-  if (
-    courseState.loading ||
-    lessonExistState.loading ||
-    generatedLessonState.loading ||
-    saveLessonState.loading ||
-    currentLessonState.loading ||
-    youtubeState.loading
-  ) {
-    return <h2>Loading lesson...</h2>;
+  // 📄 PDF Download
+  const downloadPDF = () => {
+    html2pdf()
+      .set({
+        margin: 0.5,
+        filename: `${lesson?.title || 'lesson'}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+      })
+      .from(pdfRef.current)
+      .save();
+  };
+
+  // ⏳ Loading
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: '#020617', color: 'white', alignItems: 'center', justifyContent: 'center' }}>
+        <h2>Loading lesson…</h2>
+      </div>
+    );
   }
 
-  if (courseState.error) return <h2>{courseState.error}</h2>;
-  if (currentLessonState.error) return <h2>{currentLessonState.error}</h2>;
+  // ❌ Error
+  if (error) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: '#020617', color: 'white', alignItems: 'center', justifyContent: 'center' }}>
+        <h2>{error}</h2>
+      </div>
+    );
+  }
 
-const normalizedLesson = currentLessonState.lesson
-  ? {
-      ...currentLessonState.lesson.content,
-      title: currentLessonState.lesson.title,
-      isCompleted: currentLessonState.lesson.isCompleted,
-      lessonIndex: currentLessonState.lesson.lessonIndex,
-    }
-  : null;
+  return (
+    <div style={{ display: "flex", minHeight: "100vh", background: "#020617" }}>
+      {/* Sidebar - Course Syllabus */}
+      <CourseSidebar
+        currentModuleIndex={moduleIndex}
+        currentLessonIndex={lessonIndex}
+      />
 
-return (
-  <LessonViewer
-    course={courseState.course}
-    lesson={normalizedLesson}
-    youtubeVideos={youtubeState.videos}
-    onNext={courseState.goToNextLesson}
-  />
-);
+      {/* Main Content Area */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", overflowY: "auto" }}>
+
+        {/* Top Header Actions */}
+        <div style={{
+          padding: "1rem 2rem",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "1rem",
+          background: "rgba(15, 23, 42, 0.4)",
+          backdropFilter: "blur(10px)",
+          position: "sticky",
+          top: 0,
+          zIndex: 10
+        }}>
+          <button
+            onClick={downloadPDF}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "8px",
+              background: "rgba(255,255,255,0.05)",
+              color: "#e2e8f0",
+              border: "1px solid rgba(255,255,255,0.1)",
+              cursor: "pointer",
+              fontSize: "0.875rem",
+              transition: "all 0.2s"
+            }}
+          >
+            📄 Download PDF
+          </button>
+          <button
+            onClick={onCompleteAndNext}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "8px",
+              background: "#6366f1",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "0.875rem",
+              fontWeight: "600",
+              boxShadow: "0 0 15px rgba(99, 102, 241, 0.4)"
+            }}
+          >
+            ✅ Complete & Next
+          </button>
+        </div>
+
+        {/* Lesson Content Container */}
+        <div style={{ padding: "0 2rem 4rem 2rem" }}>
+          {/* Hidden PDF content */}
+          <div style={{ display: "none" }}>
+            <LessonPDF
+              ref={pdfRef}
+              lesson={lesson}
+              youtubeVideos={youtubeVideos}
+            />
+          </div>
+
+          {!lesson ? (
+            <div style={{ padding: "4rem", textAlign: "center" }}>
+              <h2 style={{ color: "#94a3b8" }}>Lesson not found</h2>
+            </div>
+          ) : (
+            <LessonViewer lesson={lesson} youtubeVideos={youtubeVideos} />
+          )}
+
+          {/* Footer Completion (Optional redundancy or main trigger) */}
+          <div style={{
+            marginTop: "4rem",
+            padding: "2rem",
+            borderTop: "1px solid rgba(255,255,255,0.1)",
+            textAlign: "center"
+          }}>
+            <h3 style={{ color: "#f8fafc", marginBottom: "1.5rem" }}>Finished this lesson?</h3>
+            <button
+              onClick={onCompleteAndNext}
+              style={{
+                padding: "12px 32px",
+                borderRadius: "12px",
+                background: "#6366f1",
+                color: "white",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "1rem",
+                fontWeight: "600",
+                boxShadow: "0 0 20px rgba(99, 102, 241, 0.4)"
+              }}
+            >
+              Mark as Completed & Continue
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
 };
 
 export default Course;

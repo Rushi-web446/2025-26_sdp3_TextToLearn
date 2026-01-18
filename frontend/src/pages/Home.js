@@ -42,7 +42,7 @@ const { courses, loading: coursesLoading } = useRecentCourses(
     }
 
     const courseId = await generateCourse(prompt);
-    navigate("/course", { state: { courseId } });
+    navigate(`/course/${courseId}/resolve`);
   };
 
   return (
@@ -92,13 +92,7 @@ const { courses, loading: coursesLoading } = useRecentCourses(
             marginBottom: "10px",
             cursor: "pointer",
           }}
-          onClick={() =>
-            navigate("/course", {
-              state: {
-                courseId: course.courseId, // 👈 hidden state
-              },
-            })
-          }
+onClick={() => navigate(`/course/${course.courseId}/resolve`)}
         >
           <h4>{course.courseTitle}</h4>
           <p>{course.courseDescription}</p>

@@ -46,6 +46,7 @@
     letter-spacing: -0.02em;
     background: linear-gradient(to right, #ffffff, #94a3b8);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     /* Fallback */
     text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
@@ -97,20 +98,25 @@
 }
 
 /* LESSON INTRODUCTION - Glassmorphism */
-.lesson-intro-box {
+.lesson-intro-box,
+.lesson-objectives-box {
     background: rgba(30, 41, 59, 0.4);
     /* Dark transparency */
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
     padding: 2rem;
     border-radius: 16px;
-    font-style: italic;
     color: #e2e8f0;
     position: relative;
     overflow: hidden;
 }
 
-.lesson-intro-box::before {
+.lesson-intro-box {
+    font-style: italic;
+}
+
+.lesson-intro-box::before,
+.lesson-objectives-box::before {
     content: '';
     position: absolute;
     top: 0;
@@ -118,6 +124,40 @@
     width: 4px;
     height: 100%;
     background: var(--primary, #6366f1);
+}
+
+.lesson-objectives-list,
+.lesson-resources-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lesson-objective-item,
+.lesson-external-item {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+
+.lesson-objective-item::before,
+.lesson-external-item::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--primary, #6366f1);
+}
+
+.lesson-link {
+    color: var(--primary, #6366f1);
+    text-decoration: none;
+    word-break: break-all;
+    transition: color 0.2s ease;
+}
+
+.lesson-link:hover {
+    color: #818cf8;
+    text-decoration: underline;
 }
 
 /* LESSON MAIN POINTS - Cards */

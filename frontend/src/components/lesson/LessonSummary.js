@@ -5,11 +5,13 @@ const LessonSummary = ({ summary }) => {
 
   return (
     <Section title="Summary">
-      <ul>
+      {/* <ul>
         {summary.map((s, idx) => (
           <li key={idx}>{s}</li>
         ))}
-      </ul>
+      </ul> */}
+
+      {summary}
     </Section>
   );
 };

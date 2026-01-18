@@ -6,11 +6,10 @@ const useGetCurrentLesson = (
   getAccessTokenSilently,
   courseId,
   moduleIndex,
-  lessonIndex,
-  refreshKey
+  lessonIndex
 ) => {
   const [lesson, setLesson] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -18,8 +17,7 @@ const useGetCurrentLesson = (
       !isAuthenticated ||
       !courseId ||
       moduleIndex === undefined ||
-      lessonIndex === undefined ||
-      !refreshKey
+      lessonIndex === undefined
     ) {
       return;
     }
@@ -27,19 +25,24 @@ const useGetCurrentLesson = (
     const fetchLesson = async () => {
       try {
         setLoading(true);
+        setError("");
+
         const token = await getAccessTokenSilently();
 
         const res = await api.get(
           `/course/get/lesson/${courseId}`,
           {
-            params: { moduleIndex, lessonIndex },
+            params: {
+              moduleIndex: Number(moduleIndex),
+              lessonIndex: Number(lessonIndex),
+            },
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        setLesson(res.data.lesson); // ✅ THIS WAS MISSING EFFECT
+        setLesson(res.data.lesson ?? null);
       } catch (err) {
         console.error(err);
         setError("Failed to fetch lesson content");
@@ -55,7 +58,6 @@ const useGetCurrentLesson = (
     courseId,
     moduleIndex,
     lessonIndex,
-    refreshKey,
   ]);
 
   return { lesson, loading, error };

@@ -5,13 +5,14 @@ import LessonIntroduction from "./LessonIntroduction";
 import LessonMainPoints from "./LessonMainPoints";
 import LessonExamples from "./LessonExamples";
 import LessonMCQs from "./LessonMCQs";
-import LessonResources from "./LessonResources";
+import LessonObjective from "./LessonObjective";
+import LessonExternal from "./LessonExternal";
 import LessonSummary from "./LessonSummary";
 import LessonNavigation from "./LessonNavigation";
 import LessonYouTubeSection from "./LessonYouTube";
 
 
-const LessonViewer = ({ lesson, youtubeVideos, onNext }) => {
+const LessonViewer = ({ lesson, youtubeVideos }) => {
   if (!lesson) return null;
 
   return (
@@ -23,6 +24,8 @@ const LessonViewer = ({ lesson, youtubeVideos, onNext }) => {
         description={lesson.description}
       />
 
+      <LessonObjective objectives={lesson.lessonObjective} />
+
       <LessonIntroduction introduction={lesson.introduction} />
 
       <LessonMainPoints points={lesson.mainPoints} />
@@ -31,18 +34,12 @@ const LessonViewer = ({ lesson, youtubeVideos, onNext }) => {
 
       <LessonYouTubeSection videos={youtubeVideos} />
 
-
       <LessonMCQs mcqs={lesson.mcqs} />
-
-      <LessonResources resources={lesson.suggestedResources} />
 
       <LessonSummary summary={lesson.summary} />
 
-      <div className="lesson-complete-section">
-        <button className="lesson-btn-complete" onClick={onNext}>
-          Mark Complete & Get Next
-        </button>
-      </div>
+      <LessonExternal externalLinks={lesson.external} />
+
     </div>
   );
 };
