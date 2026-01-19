@@ -8,20 +8,19 @@ import { BrowserRouter } from "react-router-dom";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
-    <BrowserRouter>
-
-  <React.StrictMode>
-    <Auth0Provider
-      domain="dev-4xlxb5a75bgzk3js.us.auth0.com"
-      clientId="PeOyumRL4iDT8d1HwsS3d1BHeZh7oi1L"
-      authorizationParams={{
-        redirect_uri: window.location.origin,
-        audience: "https://text-to-learn-api",
-      }}
-      cacheLocation="localstorage"
-    >
-      <App />
-    </Auth0Provider>
-  </React.StrictMode>
-    </BrowserRouter>
+  <BrowserRouter>
+    <React.StrictMode>
+      <Auth0Provider
+        domain={process.env.REACT_APP_AUTH0_DOMAIN}
+        clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
+        authorizationParams={{
+          redirect_uri: window.location.origin,
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+        }}
+        cacheLocation="localstorage"
+      >
+        <App />
+      </Auth0Provider>
+    </React.StrictMode>
+  </BrowserRouter>,
 );

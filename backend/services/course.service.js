@@ -5,7 +5,7 @@ const { findById, saveCourseOutlineToDB, findRecentCoursesByUser, updateLastAcce
   saveLesson,
 } = require("../repository/course.repository");
 
-const {getYouTubeVideos} = require("../repository/YouTube.repository");
+const { getYouTubeVideos } = require("../repository/YouTube.repository");
 
 
 const saveCourseOutlineToDBService = async ({ outline, userId }) => {
@@ -43,9 +43,8 @@ const saveCourseOutlineToDBService = async ({ outline, userId }) => {
       lessons: (m.lessons || []).map((l, lIdx) => ({
         lessonIndex: l.lessonIndex || lIdx + 1,
         title: l.title || `Lesson ${lIdx + 1}`,
-        briefDescription: l.briefDescription || "Lesson content",
-        estimatedTime: l.estimatedTime || "1.5",
-        deliverables: l.deliverables || "Complete the lesson exercise",
+        lessonObjective: l.lessonObjective || "",
+        briefDescription: l.description || l.briefDescription || "Lesson content",
       })),
     })),
   };
@@ -92,24 +91,25 @@ const getCourseDetailsWithProgressService = async (courseId, userId) => {
   let currentLessonIndex = 0;
 
   for (let i = 0; i < course.modules.length; i++) {
-    const module = course.modules[i];
-
-    if (!module.isCompleted) {
+    if (course.modules[i].isCompleted === false) {
       currentModuleIndex = i + 1;
+      break;
+    }
+  }
 
-      // Find current lesson inside this module
-      for (let j = 0; j < module.lessons.length; j++) {
-        if (!module.lessons[j].isCompleted) {
-          currentLessonIndex = j + 1;
-          break;
-        }
-      }
+  if (currentModuleIndex === 0) {
+    return {
+      course,
+      progress: {
+        currentModule: course.modules.length,
+        currentLesson: course.modules[course.modules.length - 1].lessons.length,
+      },
+    };
+  }
 
-      // If all lessons completed, stay on last lesson
-      if (currentLessonIndex === 0 && module.lessons.length > 0) {
-        currentLessonIndex = module.lessons.length;
-      }
-
+  for (let i = 0; i < course.modules[currentModuleIndex - 1].lessons.length; i++) {
+    if (course.modules[currentModuleIndex - 1].lessons[i].isCompleted === false) {
+      currentLessonIndex = i + 1;
       break;
     }
   }
@@ -175,7 +175,9 @@ const getLessonContentService = async ({
   return {
     lesson: {
       title: lesson.title,
-      content: lesson.content,
+      description: lesson.briefDescription,
+      lessonObjective: lesson.lessonObjective,
+      ...lesson.content,
       isCompleted: lesson.isCompleted,
       lessonIndex: lesson.lessonIndex,
     },
@@ -187,13 +189,13 @@ const getLessonContentService = async ({
 };
 
 const getYouTubeVideosService = async (query) => {
-    console.log("\n\n\n\n  --> reaching :  backend/services/YouTube.service.js . \n\n\n");
-    try {
-        return await getYouTubeVideos(query);
-    } catch (error) {
-        // Throw the original error so we know what happened
-        throw error;
-    }
+  console.log("\n\n\n\n  --> reaching :  backend/services/YouTube.service.js . \n\n\n");
+  try {
+    return await getYouTubeVideos(query);
+  } catch (error) {
+    // Throw the original error so we know what happened
+    throw error;
+  }
 };
 
 const checkLessonExistsService = async ({
@@ -229,20 +231,14 @@ const saveLessonService = async ({
     throw new Error("Missing required parameters for saving lesson");
   }
 
-  // The repository expects 'lessonObj'. We pass 'lesson' implicit content.
-  // The user sends { message: "...", data: { ... } } in 'lesson'.
-  // We need to extract 'data' and put it into 'content' for the repository/schema.
-
+  // Revert to saving into 'content' field
   let lessonPayload = {};
 
   if (lesson && lesson.data) {
-    // Case: Wrapped response { message, data: { ... } }
     lessonPayload.content = lesson.data;
   } else if (lesson && lesson.content) {
-    // Case: Already formatted as { content: ... }
     lessonPayload = lesson;
   } else {
-    // Case: Raw content
     lessonPayload.content = lesson;
   }
 

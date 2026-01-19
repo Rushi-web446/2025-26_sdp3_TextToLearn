@@ -59,7 +59,7 @@ const generateLesson = async (req, res) => {
       });
     }
 
-    
+
 
     const lessonPrompt = await getLessonPrompt(
       courseId,
@@ -104,8 +104,6 @@ const generateYouTubeQueryController = async (req, res) => {
     return res.status(400).json({ message: err.message });
   }
 };
-
-
 
 
 

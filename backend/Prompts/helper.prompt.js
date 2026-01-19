@@ -24,15 +24,16 @@ const getOutlinePrompt = ({ topicName, description }) => {
 
 
 const getFinalPrompt = (prompt, course, module, lesson) => {
-
-  const finalPrompt = prompt
-    .replaceAll("{{course.title}}", course.title)
-    .replaceAll("{{module.title}}", module.title)
-    .replaceAll("{{lesson.title}}", lesson.title);
-
-  return finalPrompt;
-
-}
+  return prompt
+    .replaceAll("{{course.title}}", course.title || "")
+    .replaceAll("{{course.courseObjective}}", course.courseObjective || "")
+    .replaceAll("{{module.title}}", module.title || "")
+    .replaceAll("{{module.moduleObjective}}", module.moduleObjective || "")
+    .replaceAll("{{module.description}}", module.description || "")
+    .replaceAll("{{lesson.title}}", lesson.title || "")
+    .replaceAll("{{lesson.lessonObjective}}", lesson.lessonObjective || "")
+    .replaceAll("{{lesson.description}}", lesson.description || "");
+};
 
 const getLessonPrompt = async (courseId, moduleId, lessonId) => {
 

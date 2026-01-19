@@ -3,13 +3,15 @@ const {
   getRecentCoursesService,
   completeLessonService,
   getCourseDetailsWithProgressService,
-
   getLessonContentService,
   checkLessonExistsService,
   saveLessonService,
   getYouTubeVideosService,
 } = require("../services/course.service");
 
+// Import generation services directly
+const { generateLessonService } = require("../services/course.generate.service");
+const { getLessonPrompt } = require("../Prompts/helper.prompt");
 
 const saveCourseOutlineToDB = async (req, res) => {
   try {
@@ -34,21 +36,16 @@ const saveCourseOutlineToDB = async (req, res) => {
   }
 };
 
-
 const getRecentCourses = async (req, res) => {
-  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
-    const userId = req.appUser._id; // comes from JWT middleware
-
+    const userId = req.appUser._id;
     const courses = await getRecentCoursesService(userId);
-
     return res.status(200).json({
       success: true,
       courses,
     });
   } catch (error) {
     console.error("ERROR FETCHING RECENT COURSES:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -57,7 +54,6 @@ const getRecentCourses = async (req, res) => {
 };
 
 const getCourseDetails = async (req, res) => {
-  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params.id;
     const userId = req.appUser._id;
@@ -71,7 +67,6 @@ const getCourseDetails = async (req, res) => {
     });
   } catch (error) {
     console.error("ERROR FETCHING COURSE DETAILS:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -80,11 +75,9 @@ const getCourseDetails = async (req, res) => {
 };
 
 const completeLesson = async (req, res) => {
-  console.log("\n\n\n\n  --> reaching :  backend/controllers/course.controller.js . \n\n\n");
   try {
     const courseId = req.params.id;
-    const userId = req.appUser._id; // 🔐 trusted
-
+    const userId = req.appUser._id;
     const { moduleIndex, lessonIndex } = req.body;
 
     const result = await completeLessonService({
@@ -100,13 +93,13 @@ const completeLesson = async (req, res) => {
     });
   } catch (error) {
     console.error("ERROR COMPLETING LESSON:", error);
-
     return res.status(400).json({
       success: false,
       message: error.message,
     });
   }
 };
+
 const getCurrentLessonContent = async (req, res) => {
   try {
     const courseId = req.params.id;
@@ -133,14 +126,12 @@ const getCurrentLessonContent = async (req, res) => {
     });
   } catch (error) {
     console.error("ERROR FETCHING LESSON CONTENT:", error);
-
     return res.status(404).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 const getYouTubeVideos = async (req, res) => {
   try {
@@ -154,17 +145,11 @@ const getYouTubeVideos = async (req, res) => {
   }
 };
 
-
-
-
 const checkLessonExists = async (req, res) => {
-  console.log("➡️ CHECK LESSON EXISTS");
-
   try {
-    const courseId = req.params.id; // ✅ FIX
+    const courseId = req.params.id;
     const userId = req.appUser._id;
-
-    const { moduleIndex, lessonIndex } = req.query; // ✅ GET → query
+    const { moduleIndex, lessonIndex } = req.query;
 
     if (moduleIndex === null || lessonIndex === null) {
       return res.status(400).json({
@@ -186,14 +171,12 @@ const checkLessonExists = async (req, res) => {
     });
   } catch (error) {
     console.error("ERROR CHECKING LESSON:", error);
-
     return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 const saveLesson = async (req, res) => {
   try {
@@ -229,6 +212,118 @@ const saveLesson = async (req, res) => {
   }
 };
 
+// Resolver Controller
+const resolveNextLesson = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const userId = req.appUser._id;
+
+    if (!courseId) {
+      return res.status(400).json({ message: "Course ID is required" });
+    }
+
+    // 1. Get Course Progress (finds the first incomplete lesson)
+    const courseDetails = await getCourseDetailsWithProgressService(courseId, userId);
+
+    if (!courseDetails || !courseDetails.progress) {
+      return res.status(404).json({ message: "Course progress not found" });
+    }
+
+    const { currentModule, currentLesson } = courseDetails.progress;
+
+    // 2. Check if lesson exists
+    let lessonExistsResult = await checkLessonExistsService({
+      courseId,
+      userId,
+      moduleIndex: currentModule,
+      lessonIndex: currentLesson,
+    });
+
+    // 3. If NOT exists, GENERATE it
+    if (!lessonExistsResult.exists) {
+      console.log(`Generating lesson for Course: ${courseId}, Module: ${currentModule}, Lesson: ${currentLesson}`);
+
+      const lessonPrompt = await getLessonPrompt(
+        courseId,
+        Number(currentModule),
+        Number(currentLesson)
+      );
+
+      if (!lessonPrompt) {
+        return res.status(404).json({ message: "Failed to generate lesson prompt" });
+      }
+
+      const generatedData = await generateLessonService(lessonPrompt);
+
+      if (!generatedData) {
+        return res.status(500).json({ message: "Failed to generate lesson content" });
+      }
+
+      await saveLessonService({
+        courseId,
+        userId,
+        moduleIndex: Number(currentModule),
+        lessonIndex: Number(currentLesson),
+        lesson: generatedData
+      });
+    }
+
+    // Return next indices
+    return res.status(200).json({
+      courseId,
+      moduleIndex: currentModule,
+      lessonIndex: currentLesson,
+    });
+
+  } catch (error) {
+    console.error("resolveNextLesson error:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Fetch Lesson Details + Videos
+const getLessonDetails = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { moduleIndex, lessonIndex } = req.query;
+    const userId = req.appUser._id;
+
+    if (!courseId || moduleIndex === undefined || lessonIndex === undefined) {
+      return res.status(400).json({ message: "Missing parameters" });
+    }
+
+    // 1. Get Lesson Content
+    const lessonData = await getLessonContentService({
+      courseId,
+      userId,
+      moduleIndex: Number(moduleIndex),
+      lessonIndex: Number(lessonIndex),
+    });
+
+    if (!lessonData || !lessonData.lesson) {
+      return res.status(404).json({ message: "Lesson not found" });
+    }
+
+    // 2. Get YouTube Videos
+    const query = lessonData.lesson.videoQuery || `${lessonData.lesson.title} tutorial`;
+
+    let videos = [];
+    try {
+      videos = await getYouTubeVideosService(query);
+    } catch (ytError) {
+      console.error("Failed to fetch YouTube videos (non-blocking):", ytError);
+    }
+
+    return res.status(200).json({
+      lesson: lessonData.lesson,
+      youtubeVideos: videos
+    });
+
+  } catch (error) {
+    console.error("getLessonDetails error:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 module.exports = {
   saveCourseOutlineToDB,
@@ -239,4 +334,6 @@ module.exports = {
   checkLessonExists,
   saveLesson,
   getYouTubeVideos,
+  resolveNextLesson,
+  getLessonDetails,
 };

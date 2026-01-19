@@ -7,6 +7,8 @@ const { saveCourseOutlineToDB, getRecentCourses, getCourseDetails,
   checkLessonExists,
   saveLesson,
   getYouTubeVideos,
+  resolveNextLesson,
+  getLessonDetails,
 } = require("../controllers/course.controller.js");
 
 const checkJwt = require("../middleware/auth.middleware");
@@ -28,25 +30,19 @@ router.post("/generate/lesson", checkJwt, syncUser, generateLesson);
 router.post("/save/lesson", checkJwt, syncUser, saveLesson);
 router.get("/get/lesson/:id", checkJwt, syncUser, getCurrentLessonContent);
 
-// router.post("/generate/YTQ", checkJwt, syncUser, generateYouTubeQueryController);
-// router.post("/get/utube", checkJwt, syncUser, getYouTubeVideos);
+router.post("/generate/YTQ", checkJwt, syncUser, generateYouTubeQueryController);
+router.post("/get/utube", checkJwt, syncUser, getYouTubeVideos);
 
 
-router.post("/generate/YTQ", generateYouTubeQueryController);
-router.post("/get/utube", getYouTubeVideos);
+router.post("/complete/lesson/:id", checkJwt, syncUser, completeLesson);
 
 
 
 
-router.get("/complete/lesson/:id", checkJwt, syncUser, completeLesson);
+// Resolver Route
+router.get("/resolve/:courseId", checkJwt, syncUser, resolveNextLesson);
 
-
-// Mapped /generate to generateOutline to match Frontend Home.js call
-router.post("/generate", checkJwt, syncUser, generateOutline);
-
-// router.get("/:id/module/:moduleIndex/topic/:topicIndex", checkJwt, syncUser, protect, getTopicContent);
-// router.post("/:id/complete-topic", checkJwt, syncUser, protect, completeTopicAndGetNext);
-// router.post("/generate/:moduleIndex", checkJwt, syncUser, protect, generateCourseModule);
-
+// Combined Fetch Route (Lesson + Videos)
+router.get("/fetch/:courseId", checkJwt, syncUser, getLessonDetails);
 
 module.exports = router;

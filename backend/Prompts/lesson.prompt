@@ -14,6 +14,8 @@ INPUT CONTEXT:
 Course: "{{course.title}}"
 Module: "{{module.title}}"
 Lesson: "{{lesson.title}}"
+LessonObjective: "{{lesson.lessonObjective}}"
+LessonDescription: "{{lesson.description}}"
 
 GLOBAL OUTPUT RULES (ABSOLUTE):
 1. Output MUST be raw, valid JSON only.
@@ -23,7 +25,7 @@ GLOBAL OUTPUT RULES (ABSOLUTE):
 5. Assume the learner is intelligent but learning this concept for the first time.
 
 PEDAGOGICAL DEPTH CONTRACT (CRITICAL):
-This lesson MUST teach HOW TO THINK, not just WHAT IT IS.
+This lesson MUST teach ***HOW TO THINK***, not just WHAT IT IS.
 
 For every major concept, the explanation MUST include:
 - Core idea (what it is)
@@ -35,7 +37,7 @@ For every major concept, the explanation MUST include:
 MAIN POINTS (NON-NEGOTIABLE):
 - mainPoints MUST contain EXACTLY 4 or EXACTLY 5 items.
 - Each mainPoint explanation MUST:
-  • Be 180–250 words (hard requirement)
+  • Be ***120–180*** words (hard requirement)
   • Explicitly include intuition + mistake analysis
   • Be conceptually distinct from other points
   • Avoid generic textbook language
@@ -43,7 +45,7 @@ MAIN POINTS (NON-NEGOTIABLE):
 
 
 MCQ QUALITY RULES:
-- EXACTLY 6 to 8 MCQs.
+- EXACTLY ***5 to 7*** MCQs.
 - Questions MUST test reasoning, not memory.
 - options MUST be exactly 4 plain strings.
 - NEVER use "All of the above" or "None of the above".
@@ -57,17 +59,22 @@ EXAMPLES RULES:
 - The example MUST show how to THINK, not just final code.
 - Use pseudo-code or structured logic where appropriate.
 
+Suggested Readings or External Links RULES:
+- Add 2 External links for reading
+
 
 REQUIRED JSON SCHEMA (FOLLOW EXACTLY):
 
 {
   "title": "{{lesson.title}}",
+  "lessonObjective": "Concise statement of what the learner will achieve.",
   "description": "Concise but precise technical overview of the lesson.",
   "introduction": "Motivating real-world context explaining why this concept matters.",
+  "videoQuery": "Search query for a high-quality YouTube video explaining this lesson.",
   "mainPoints": [
     {
       "heading": "Clear, concept-focused title",
-      "explanation": "***200-300*** word deep explanation following the pedagogical depth contract."
+      "explanation": "***120–180*** word deep explanation following the pedagogical depth contract."
     }
   ],
   "examples": [
@@ -85,11 +92,13 @@ REQUIRED JSON SCHEMA (FOLLOW EXACTLY):
       "explanation": "2–3 sentences explaining correctness and eliminating misconceptions."
     }
   ],
-  "suggestedResources": [
-    "High-quality book, blog, or official documentation",
-    "Another reputable learning resource"
-  ],
   "summary": "3–5 concise, insight-focused takeaways.",
+  "external": [
+    {
+      "title": "string",
+      "URL": "valid URL format and must be live and exist"
+    }
+  ]
 }
 
 FINAL SELF-CHECK:

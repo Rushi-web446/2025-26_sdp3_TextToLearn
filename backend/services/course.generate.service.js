@@ -23,7 +23,7 @@ const generateJsonFromLLM = async ({ prompt, maxTokens }) => {
   if (!raw) {
     throw new Error("Empty response from LLM");
   }
-  
+
   try {
     return JSON.parse(raw.trim());
   } catch (err) {

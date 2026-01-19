@@ -26,27 +26,19 @@ COURSE-LEVEL CONSTRAINTS:
 
 MODULE-LEVEL CONSTRAINTS (CRITICAL):
 FOR EACH MODULE:
-- lessons array MUST contain AT LEAST ***4 lessons AND AT MOST 6*** lessons.
+- modules array MUST contain AT LEAST ***4 lessons AND AT MOST 6*** lessons.
 - Fewer than 4 lessons → INVALID OUTPUT.
 - More than 6 lessons → INVALID OUTPUT.
-- difficultyLevel MUST follow strict progression:
-  • Module 1 → "Beginner"
-  • Last module → "Advanced"
-  • All middle modules → "Intermediate"
 - moduleIndex and recommendedOrder MUST start at 1 and increase sequentially.
-- module estimatedTime MUST equal the SUM of its lesson estimatedTime values.
 
 LESSON-LEVEL CONSTRAINTS (CRITICAL):
 FOR EACH LESSON:
 - lessonIndex MUST start at 1 and increase sequentially within its module.
-- estimatedTime MUST be between 1.0 and 3.0 hours.
 - lesson titles MUST be specific and non-generic.
 
 CURRICULUM COHERENCE RULES:
 - Modules MUST progress ***logically from fundamentals → application → mastery***.
 - No module may introduce advanced concepts before prerequisites.
-- excludedConcepts MUST list topics intentionally NOT covered.
-- coveredConcepts MUST be concrete, teachable concepts (not vague phrases).
 
 QUALITY ENFORCEMENT:
 - Descriptions must be professional and learner-focused.
@@ -61,8 +53,7 @@ MANDATORY JSON SCHEMA (FOLLOW EXACTLY):
     "title": "string",
     "description": "string",
     "courseObjective": "string",
-    "estimatedTotalTime": number,
-    "skillsGained": ["string"],
+    "skillsGained": ["string"]
   },
   "modules": [
     {
@@ -70,10 +61,6 @@ MANDATORY JSON SCHEMA (FOLLOW EXACTLY):
       "title": "string",
       "description": "string (60–90 words)",
       "moduleObjective": "string",
-      "difficultyLevel": "Beginner | Intermediate | Advanced",
-      "estimatedTime": number,
-      "coveredConcepts": ["string"],
-      "excludedConcepts": ["string"],
       "learningOutcomes": ["string"],
       "topics": ["string"],
       "lessons": [
@@ -81,7 +68,7 @@ MANDATORY JSON SCHEMA (FOLLOW EXACTLY):
           "lessonIndex": number,
           "title": "string",
           "briefDescription": "string",
-          "estimatedTime": number,
+          "lessonObjective": "string"
         }
       ]
     }
@@ -92,7 +79,6 @@ FINAL INTERNAL VALIDATION (MANDATORY):
 Before responding, internally verify:
 - Module count is between 4 and 6
 - EACH module has 4–6 lessons
-- All time sums are correct
 - Difficulty progression is correct
 - JSON parses without error
 

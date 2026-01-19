@@ -21,3 +21,18 @@
 
 ~~~> while submitting e.preventDefault() ???
 
+
+
+
+1. CI/CD
+
+2. Docker
+
+3. queuing  (rabbit MQ) (pooling) (pusher) (locking)
+
+~~~~~  course creation queue
+~~~~~  low priority recourse creation queue
+~~~~~  high priority recourse creation queue
+
+4. Observability
+-- promises + grafana
