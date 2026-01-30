@@ -1,34 +1,31 @@
+
 import { useAuth0 } from "@auth0/auth0-react";
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { useAuthSync } from "../hooks/useAuthSync";
 import { useRecentCourses } from "../hooks/useRecentCourses";
 import { useCourseGeneration } from "../hooks/useCourseGeneration";
 
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
 const Home = () => {
-
-
-  const location = useLocation();
-
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated, getAccessTokenSilently,} = useAuth0();
+  const { user, logout, isAuthenticated, getAccessTokenSilently } = useAuth0();
 
   const [prompt, setPrompt] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [waiting, setWaiting] = useState(false);
 
-  // 🔐 Sync user
-const userReady = useAuthSync(isAuthenticated, getAccessTokenSilently, user);
+  const userReady = useAuthSync(isAuthenticated, getAccessTokenSilently, user);
 
+  const { courses, loading: coursesLoading } = useRecentCourses(
+    isAuthenticated,
+    userReady,
+    getAccessTokenSilently,
+    refreshKey
+  );
 
-
-const { courses, loading: coursesLoading } = useRecentCourses(
-  isAuthenticated,
-  userReady,
-  getAccessTokenSilently,
-  location.key // 👈 THIS is the trigger
-);
-
-  // ⚙️ Course generation
   const { generateCourse, loading, error } = useCourseGeneration(
     getAccessTokenSilently
   );
@@ -41,8 +38,27 @@ const { courses, loading: coursesLoading } = useRecentCourses(
       return;
     }
 
-    const courseId = await generateCourse(prompt);
-    navigate(`/course/${courseId}/resolve`);
+    try {
+      const initialCount = courses.length;
+      setWaiting(true);
+
+      await generateCourse(prompt);
+      setPrompt("");
+
+      // 🔹 First retry (most cases succeed here)
+      await sleep(1500);
+      setRefreshKey((k) => k + 1);
+
+      // 🔹 If still not visible, ONE more retry
+      await sleep(1000);
+      if (courses.length === initialCount) {
+        setRefreshKey((k) => k + 1);
+      }
+    } catch (err) {
+      console.warn("Course generation failed");
+    } finally {
+      setWaiting(false);
+    }
   };
 
   return (
@@ -68,19 +84,22 @@ const { courses, loading: coursesLoading } = useRecentCourses(
           style={{ width: "100%", padding: "10px" }}
         />
 
-        <button disabled={loading} style={{ marginTop: "10px" }}>
-          {loading ? "Generating..." : "Submit"}
+        <button
+          disabled={loading || waiting}
+          style={{ marginTop: "10px" }}
+        >
+          {loading || waiting ? "Creating..." : "Submit"}
         </button>
       </form>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
+      {waiting && <p>Finalizing your course…</p>}
 
       <hr />
 
       <h3>My Courses</h3>
 
       {coursesLoading && <p>Loading courses...</p>}
-
       {!coursesLoading && courses.length === 0 && <p>No courses yet</p>}
 
       {courses.map((course) => (
@@ -92,7 +111,7 @@ const { courses, loading: coursesLoading } = useRecentCourses(
             marginBottom: "10px",
             cursor: "pointer",
           }}
-onClick={() => navigate(`/course/${course.courseId}/resolve`)}
+          onClick={() => navigate(`/course/${course.courseId}/module/1/lesson/1`)}
         >
           <h4>{course.courseTitle}</h4>
           <p>{course.courseDescription}</p>

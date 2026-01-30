@@ -9,4 +9,4 @@ const { protect } = require("../middleware/auth");
 // CHANGE THIS LINE: Use 'protect' instead of 'protected'
 router.post("/get/utube", protect, getYouTubeVideos);
 
-module.exports = router;    
+module.exports = router;

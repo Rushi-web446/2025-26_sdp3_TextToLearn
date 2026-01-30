@@ -22,14 +22,12 @@ const syncUser = async (req, res, next) => {
       console.log(`\n\n\n\n : \n\n\n  name is : ${name} \n\n email is   : ${email}  \n\n  auth0Id is  :  ${auth0Id} \n\n\n\n`);
 
 
-    // 🔴 If email STILL missing, something is wrong in Auth0 Action
     if (!email) {
       return res.status(400).json({
         message: "Email missing in token. Check Auth0 post-login action.",
       });
     }
 
-    // ✅ Atomic upsert (SAFE for login + signup)
     const user = await User.findOneAndUpdate(
       { auth0Id },
       {

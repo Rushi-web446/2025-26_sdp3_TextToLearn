@@ -27,23 +27,23 @@ export const useCourseGeneration = (getAccessTokenSilently) => {
         { headers }
       );
 
-      // 3️⃣ Save outline (creates course)
-      const saveRes = await api.post(
-        "/course/save/outline",
-        outlineRes.data.data,
-        { headers }
-      );
+      // // 3️⃣ Save outline (creates course)
+      // const saveRes = await api.post(
+      //   "/course/save/outline",
+      //   outlineRes.data.data,
+      //   { headers }
+      // );
 
-      const courseId = saveRes.data.courseId; // ✅ NOW defined
+      // const courseId = saveRes.data.courseId; // ✅ NOW defined
 
-      // 4️⃣ Save course for user (THIS WAS MISSING / WRONG)
-      await api.post(
-        "/user/save/course",
-        { courseId }, // ✅ OBJECT — matches backend
-        { headers }
-      );
+      // // 4️⃣ Save course for user (THIS WAS MISSING / WRONG)
+      // await api.post(
+      //   "/user/save/course",
+      //   { courseId }, // ✅ OBJECT — matches backend
+      //   { headers }
+      // );
 
-      return courseId;
+      return outlineRes;
     } catch (err) {
       console.error(err);
       setError("Failed to generate course");
