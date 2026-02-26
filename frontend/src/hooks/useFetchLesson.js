@@ -11,6 +11,7 @@ const useFetchLesson = ({ courseId, moduleIndex, lessonIndex }) => {
   const [youtubeVideos, setYoutubeVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [progressState, setProgressState] = useState("setup"); // setup, loading, finalizing
 
   useEffect(() => {
     if (!isAuthenticated || !courseId) return;
@@ -21,11 +22,23 @@ const useFetchLesson = ({ courseId, moduleIndex, lessonIndex }) => {
       try {
         setLoading(true);
         setError("");
+        setProgressState("setup");
 
         const token = await getAccessTokenSilently();
 
-        while (!cancelled) {
-          // alert("atleast coming to this");
+        let pollCount = 0;
+        const maxPolls = 150; // 5 minutes max (150 * 2 seconds)
+
+        while (!cancelled && pollCount < maxPolls) {
+          // Update progress state based on poll count
+          if (pollCount <= 5) {
+            setProgressState("setup");
+          } else if (pollCount <= 15) {
+            setProgressState("loading");
+          } else {
+            setProgressState("finalizing");
+          }
+
           const res = await api.get(`/course/get/lesson/${courseId}`, {
             params: {
               moduleIndex: Number(moduleIndex),
@@ -36,20 +49,26 @@ const useFetchLesson = ({ courseId, moduleIndex, lessonIndex }) => {
             },
           });
 
-          // alert(`\n\n ${JSON.stringify(res.data)}`);
-
           if (res.data.status === "READY") {
             setLesson(res.data.lesson);
             setYoutubeVideos(res.data.lesson.youtubeVideos || []);
+            setProgressState("completed");
             break;
           }
 
-          // ⏳ lesson still generating → wait & retry
-          await sleep(1000);
+          pollCount++;
+          await sleep(2000); // Poll every 2 seconds as requested
+        }
+
+        if (pollCount >= maxPolls && !cancelled) {
+          throw new Error("Lesson loading timeout");
         }
       } catch (err) {
         console.error(err);
-        if (!cancelled) setError("Failed to load lesson");
+        if (!cancelled) {
+          setError("Failed to load lesson");
+          setProgressState("failed");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -73,6 +92,7 @@ const useFetchLesson = ({ courseId, moduleIndex, lessonIndex }) => {
     youtubeVideos,
     loading,
     error,
+    progressState,
   };
 };
 

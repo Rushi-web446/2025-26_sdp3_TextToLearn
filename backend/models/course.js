@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
- // Lesson Schema
+// Lesson Schema
 const lessonSchema = new mongoose.Schema(
   {
     lessonIndex: { type: Number, required: true },
@@ -11,6 +11,10 @@ const lessonSchema = new mongoose.Schema(
     content: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
+    },
+    hinglishContent: {
+      type: String,
+      default: "",
     },
     isGenerated: {
       type: String,
@@ -23,7 +27,8 @@ const lessonSchema = new mongoose.Schema(
   { _id: true }
 );
 
-/* ---------- Module Schema ---------- */
+
+// Module Schema 
 const moduleSchema = new mongoose.Schema(
   {
     moduleIndex: { type: Number, required: true },
@@ -41,7 +46,7 @@ const moduleSchema = new mongoose.Schema(
   { _id: true }
 );
 
- // Course Schema
+// Course Schema
 const courseSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
