@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
+import api from '../../api/axios';
 import './HomeSidebar.css';
 
-const HomeSidebar = ({ isOpen, onClose, recentCourses, loading }) => {
+const HomeSidebar = ({ isOpen, onClose, recentCourses: initialCourses, loading, getAccessTokenSilently }) => {
   const navigate = useNavigate();
   const { logout } = useAuth0();
+  const [recentCourses, setRecentCourses] = useState(initialCourses || []);
+  const [localLoading, setLocalLoading] = useState(false);
 
   const handleCourseClick = (courseId) => {
-    navigate(`/course/${courseId}/module/1/lesson/1`);
+    navigate(`/course/${courseId}`);
     onClose();
   };
 
@@ -17,12 +20,43 @@ const HomeSidebar = ({ isOpen, onClose, recentCourses, loading }) => {
     onClose();
   };
 
+  useEffect(() => {
+    let mounted = true;
+    const loadUserCourses = async () => {
+      if (!isOpen) return;
+      // if parent provided courses, skip fetch
+      if (initialCourses && initialCourses.length > 0) {
+        setRecentCourses(initialCourses);
+        return;
+      }
+
+      try {
+        setLocalLoading(true);
+        const token = getAccessTokenSilently ? await getAccessTokenSilently() : null;
+        const res = await api.get('/course/course', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (mounted && res.data && res.data.courses) {
+          setRecentCourses(res.data.courses);
+        }
+      } catch (err) {
+        console.error('Failed to load user courses:', err);
+      } finally {
+        if (mounted) setLocalLoading(false);
+      }
+    };
+
+    loadUserCourses();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen, getAccessTokenSilently, initialCourses]);
+
   return (
     <>
-      {/* Overlay */}
       {isOpen && <div className="sidebar-overlay" onClick={onClose}></div>}
 
-      {/* Sidebar */}
       <aside className={`home-sidebar ${isOpen ? 'open' : ''}`}>
         <div className="home-sidebar-header">
           <h2>Your Courses</h2>
@@ -36,17 +70,16 @@ const HomeSidebar = ({ isOpen, onClose, recentCourses, loading }) => {
         </div>
 
         <div className="home-sidebar-content">
-          {/* Recent Courses Section */}
           <div className="sidebar-section">
             <h3 className="section-title">Recent Courses</h3>
-            {loading && <p className="loading-text">Loading courses...</p>}
-            {!loading && recentCourses.length === 0 && (
+            {(loading || localLoading) && <p className="loading-text">Loading courses...</p>}
+            {!localLoading && !loading && recentCourses?.length === 0 && (
               <p className="empty-text">No courses yet</p>
             )}
 
-            {!loading && recentCourses.length > 0 && (
+            {!localLoading && !loading && recentCourses?.length > 0 && (
               <div className="courses-list">
-                {recentCourses.slice(0, 3).map((course) => (
+                {recentCourses.slice(0, 7).map((course) => (
                   <div
                     key={course.courseId}
                     className="course-item"
@@ -61,7 +94,6 @@ const HomeSidebar = ({ isOpen, onClose, recentCourses, loading }) => {
           </div>
         </div>
 
-        {/* Sidebar Footer with Logout */}
         <div className="home-sidebar-footer">
           <button
             className="logout-btn"

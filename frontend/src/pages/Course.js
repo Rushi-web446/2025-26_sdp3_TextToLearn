@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useRef, useState, useEffect } from "react";
 import html2pdf from "html2pdf.js";
@@ -16,6 +16,7 @@ import api from "../api/axios";
 
 const Course = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { courseId, moduleIndex, lessonIndex } = useParams();
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
@@ -23,121 +24,33 @@ const Course = () => {
   const [roadmapOpen, setRoadmapOpen] = useState(false);
   const [courseData, setCourseData] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [explainMenuOpen, setExplainMenuOpen] = useState(false);
 
-  const speakText = (text, lang = "hi-IN") => {
-    if (!('speechSynthesis' in window)) {
-      console.error("Speech not supported.");
-      return;
-    }
+  // simple notification when feature not available yet
+  const notifyComingSoon = () => {
+    if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-
-    if (!text) return;
-
-    // Convert object to string if necessary
-    let textToSpeak = "";
-    if (typeof text === 'object') {
-      if (text.introduction) textToSpeak += text.introduction + " ";
-      if (text.mainPoints) {
-        text.mainPoints.forEach(p => {
-          textToSpeak += (p.heading || "") + ". " + (p.explanation || "") + " ";
-        });
-      }
-      if (text.examples) {
-        text.examples.forEach(e => {
-          textToSpeak += "Example: " + (e.title || "") + ". " + (e.content || "") + " ";
-        });
-      }
-      if (text.summary) textToSpeak += "Summary: " + text.summary;
-    } else {
-      textToSpeak = text;
-    }
-
-    // Clean text
-    textToSpeak = textToSpeak.replace(/[*#_`]/g, '');
-
-    // Split into sentences for better stability
-    const chunks = textToSpeak.match(/[^.!?]+[.!?]+/g) || [textToSpeak];
-    let currentChunk = 0;
-
-    const speakNext = () => {
-      if (currentChunk >= chunks.length) return;
-
-      const utterance = new SpeechSynthesisUtterance(chunks[currentChunk].trim());
-      utterance.lang = lang;
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-      utterance.volume = 1;
-
-      const voices = window.speechSynthesis.getVoices();
-      const selectedVoice = voices.find(voice => voice.lang.startsWith(lang.split('-')[0]));
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-
-      utterance.onend = () => {
-        currentChunk++;
-        speakNext();
-      };
-
-      utterance.onerror = (err) => {
-        console.error("SpeechSynthesis error:", err);
-        currentChunk++;
-        speakNext();
-      };
-
-      window.speechSynthesis.speak(utterance);
-    };
-
-    speakNext();
+    const msg = new SpeechSynthesisUtterance(
+      "This feature is under development and will be available in the future.",
+    );
+    msg.lang = "en-US";
+    msg.rate = 1.0;
+    window.speechSynthesis.speak(msg);
   };
 
-  const handleExplain = async (lang) => {
-    try {
-      setExplainMenuOpen(false);
-      const token = await getAccessTokenSilently();
-      const res = await api.get(`/course/lesson/explain/${courseId}`, {
-        params: {
-          moduleIndex: Number(moduleIndex),
-          lessonIndex: Number(lessonIndex)
-        },
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  const { lesson, youtubeVideos, loading, error, progressState } =
+    useFetchLesson({
+      courseId,
+      moduleIndex,
+      lessonIndex,
+    });
 
-      const lessonData = res.data.lesson;
-      const content = lang === "hi-IN" ? lessonData.hinglishContent : (lessonData.content || lessonData.title);
-
-      if (!content && lang === "hi-IN") {
-        speakText("Hinglish version is still generating, please wait a moment.", lang);
-      } else {
-        speakText(content, lang);
-      }
-    } catch (err) {
-      console.error("Failed to fetch explanation:", err);
-      alert("Failed to load explanation from server.");
-    }
-  };
-
-  const {
-    lesson,
-    youtubeVideos,
-    loading,
-    error,
-    progressState,
-  } = useFetchLesson({
-    courseId,
-    moduleIndex,
-    lessonIndex,
-  });
-
-  // Fetch course structure for roadmap
   useEffect(() => {
     const fetchCourseStructure = async () => {
       if (!isAuthenticated || !courseId) return;
       try {
         const token = await getAccessTokenSilently();
         const res = await api.get(`/course/details/${courseId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         setCourseData(res.data.course);
       } catch (err) {
@@ -148,37 +61,6 @@ const Course = () => {
     fetchCourseStructure();
   }, [courseId, isAuthenticated, getAccessTokenSilently]);
 
-
-
-  const onCompleteAndNext = async () => {
-    try {
-      setIsTransitioning(true);
-      const token = await getAccessTokenSilently();
-
-      await api.post(
-        `/course/complete/lesson/${courseId}`,
-        {
-          moduleIndex: Number(moduleIndex),
-          lessonIndex: Number(lessonIndex),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // Show transition screen for better UX (4 seconds)
-      setTimeout(() => {
-        navigate(`/course/${courseId}/resolve`, { replace: true });
-      }, 4000);
-    } catch (err) {
-      console.error(err);
-      setIsTransitioning(false);
-      alert("Failed to complete lesson");
-    }
-  };
-
   const downloadPDF = () => {
     if (!lesson) return;
 
@@ -188,6 +70,7 @@ const Course = () => {
         filename: `${lesson?.title || "lesson"}.pdf`,
         html2canvas: { scale: 2 },
         jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: "css" },
       })
       .from(pdfRef.current)
       .save();
@@ -235,7 +118,6 @@ const Course = () => {
 
   return (
     <>
-      {/* Course Roadmap Modal */}
       <CourseRoadmap
         courseData={courseData}
         isOpen={roadmapOpen}
@@ -244,9 +126,14 @@ const Course = () => {
         currentLessonIndex={Number(lessonIndex)}
       />
 
-      {/* Main Content */}
-      <div style={{ display: "flex", minHeight: "100vh", background: "#020617", flexDirection: "column" }}>
-        {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          minHeight: "100vh",
+          background: "#020617",
+          flexDirection: "column",
+        }}
+      >
         <div
           style={{
             padding: "1rem 2rem",
@@ -262,9 +149,12 @@ const Course = () => {
             zIndex: 100,
           }}
         >
-          {/* Left - Roadmap Button */}
           <button
-            onClick={() => setRoadmapOpen(true)}
+            onClick={() =>
+              navigate(`/course/${courseId}`, {
+                state: { from: location.pathname },
+              })
+            }
             style={{
               padding: "8px 16px",
               borderRadius: "8px",
@@ -291,9 +181,7 @@ const Course = () => {
             🗺️ Roadmap
           </button>
 
-          {/* Right - Action Buttons */}
           <div style={{ display: "flex", gap: "1rem" }}>
-            {/* Back to Home Button */}
             <button
               onClick={() => navigate("/")}
               style={{
@@ -319,10 +207,10 @@ const Course = () => {
               ← Back to Home
             </button>
 
-            {/* Explain Content Button */}
-            <div style={{ position: "relative" }}>
+            {/* Explain Content Button (placeholder) */}
+            <div style={{ display: "flex", gap: "0.5rem" }}>
               <button
-                onClick={() => setExplainMenuOpen(!explainMenuOpen)}
+                onClick={notifyComingSoon}
                 style={{
                   padding: "8px 16px",
                   borderRadius: "8px",
@@ -343,64 +231,8 @@ const Course = () => {
                   e.target.style.borderColor = "rgba(34, 197, 94, 0.3)";
                 }}
               >
-                💡 Explain
+                💡 Explain (coming soon)
               </button>
-
-              {explainMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    marginTop: "0.25rem",
-                    background: "#1e293b",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                    borderRadius: "12px",
-                    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)",
-                    zIndex: 200,
-                    minWidth: "180px",
-                    overflow: "hidden",
-                    backdropFilter: "blur(16px)"
-                  }}
-                >
-                  <button
-                    onClick={() => handleExplain("en-US")}
-                    style={{
-                      width: "100%",
-                      padding: "10px 16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      color: "#f8fafc",
-                      cursor: "pointer",
-                      fontSize: "0.875rem",
-                      transition: "background 0.2s"
-                    }}
-                    onMouseEnter={(e) => e.target.style.background = "rgba(255,255,255,0.05)"}
-                    onMouseLeave={(e) => e.target.style.background = "none"}
-                  >
-                    🇺🇸 Pure English
-                  </button>
-                  <button
-                    onClick={() => handleExplain("hi-IN")}
-                    style={{
-                      width: "100%",
-                      padding: "10px 16px",
-                      textAlign: "left",
-                      background: "none",
-                      border: "none",
-                      color: "#f8fafc",
-                      cursor: "pointer",
-                      fontSize: "0.875rem",
-                      transition: "background 0.2s"
-                    }}
-                    onMouseEnter={(e) => e.target.style.background = "rgba(255,255,255,0.05)"}
-                    onMouseLeave={(e) => e.target.style.background = "none"}
-                  >
-                    🇮🇳 Hinglish
-                  </button>
-                </div>
-              )}
             </div>
 
             <button
@@ -424,32 +256,6 @@ const Course = () => {
             >
               📄 Download PDF
             </button>
-
-            <button
-              onClick={onCompleteAndNext}
-              style={{
-                padding: "8px 16px",
-                borderRadius: "8px",
-                background: "#6366f1",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-                fontWeight: "600",
-                boxShadow: "0 0 15px rgba(99, 102, 241, 0.4)",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.boxShadow = "0 0 25px rgba(99, 102, 241, 0.6)";
-                e.target.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.boxShadow = "0 0 15px rgba(99, 102, 241, 0.4)";
-                e.target.style.transform = "translateY(0)";
-              }}
-            >
-              ✔ Completed
-            </button>
           </div>
         </div>
 
@@ -464,10 +270,11 @@ const Course = () => {
         >
           {/* Content */}
           <div style={{ padding: "0 2rem 4rem 2rem" }}>
-            {/* Hidden PDF */}
-            <div style={{ display: "none" }}>
+            {/* Hidden PDF container for export (off-screen) */}
+            <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
               <LessonPDF
                 ref={pdfRef}
+                course={courseData}
                 lesson={lesson}
                 youtubeVideos={youtubeVideos}
               />
@@ -478,10 +285,7 @@ const Course = () => {
                 <h2 style={{ color: "#94a3b8" }}>Lesson not found</h2>
               </div>
             ) : (
-              <LessonViewer
-                lesson={lesson}
-                youtubeVideos={youtubeVideos}
-              />
+              <LessonViewer lesson={lesson} youtubeVideos={youtubeVideos} />
             )}
 
             {/* Footer */}
@@ -492,37 +296,7 @@ const Course = () => {
                 borderTop: "1px solid rgba(255,255,255,0.1)",
                 textAlign: "center",
               }}
-            >
-              <h3 style={{ color: "#f8fafc", marginBottom: "1.5rem" }}>
-                Finished this lesson?
-              </h3>
-
-              <button
-                onClick={onCompleteAndNext}
-                style={{
-                  padding: "12px 32px",
-                  borderRadius: "12px",
-                  background: "#6366f1",
-                  color: "white",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: "600",
-                  boxShadow: "0 0 20px rgba(99, 102, 241, 0.4)",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.boxShadow = "0 0 30px rgba(99, 102, 241, 0.6)";
-                  e.target.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.boxShadow = "0 0 20px rgba(99, 102, 241, 0.4)";
-                  e.target.style.transform = "translateY(0)";
-                }}
-              >
-                ✔ Mark as Completed
-              </button>
-            </div>
+            ></div>
           </div>
         </main>
       </div>

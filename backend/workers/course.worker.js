@@ -1,20 +1,24 @@
 require("dotenv").config();
-const connectDB = require("../config/db");
 
-// 🔴 CONNECT DB BEFORE WORKER STARTS
+
+
+const connectDB = require("../config/db");
+const { redisConnection } = require("../redis/connection");
+
+
+// since this will not trigger through server.js file so we have to make sure write first hear
 connectDB();
 
-setInterval(() => {
-  redisConnection.ping();
-}, 30_000);
 
 
 
 const { Worker } = require("bullmq");
-const { redisConnection } = require("../redis/connection");
 const { generateOutlineService } = require("../services/course.generate.service");
 const { saveCourseOutlineToDBService } = require("../services/course.service");
-const { addLessonToLessonQueue } = require("../utils/helper");
+const { addLessonToLowPriorityLessonQueue } = require("../utils/helper");
+
+
+
 
 const courseWorker = new Worker(
   "COURSE_QUEUE",
@@ -24,18 +28,19 @@ const courseWorker = new Worker(
 
     const generatedOutline = await generateOutlineService({ prompt });
 
-    
+
     const courseId = await saveCourseOutlineToDBService(generatedOutline, userId);
 
-    await addLessonToLessonQueue(courseId, userId);
+    await addLessonToLowPriorityLessonQueue(courseId);
 
     return { courseId };
   },
   {
     connection: redisConnection,
-    concurrency: 2,
+    concurrency: 1,
   }
 );
+
 
 
 

@@ -33,7 +33,6 @@ const CourseResolver = () => {
           { replace: true }
         );
       } catch (err) {
-        // optional: redirect home or error page
         navigate("/home", { replace: true });
       }
     };
@@ -41,7 +40,6 @@ const CourseResolver = () => {
     resolveCourse();
   }, [courseId, isAuthenticated, getAccessTokenSilently, navigate]);
 
-  // Show the full-screen transition overlay while resolving
   return <LessonTransition />;
 };
 

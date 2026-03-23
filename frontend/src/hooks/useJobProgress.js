@@ -1,25 +1,41 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../api/axios";
 
+/**
+ * useJobProgress
+ *
+ * Polls /course/recent until a new course appears that wasn't in the
+ * pre-generation snapshot of course IDs (`existingCourseIds` Set).
+ *
+ * This approach is immune to the "0 courses" edge-case because it never
+ * relies on array length comparisons — it only checks Set membership.
+ *
+ * @param {Function} getAccessTokenSilently - Auth0 token getter
+ */
 export const useJobProgress = (getAccessTokenSilently) => {
   const [newCourse, setNewCourse] = useState(null);
-  const [progressState, setProgressState] = useState("idle"); // idle, extracting, generating, creating, completed, failed
+  const [progressState, setProgressState] = useState("idle"); // idle | extracting | generating | creating | completed | failed
   const [isPolling, setIsPolling] = useState(false);
 
-  const startPolling = async (previousCourses) => {
-    if (!previousCourses || previousCourses.length === 0) return;
-
+  /**
+   * startPolling
+   *
+   * @param {Set<string>} existingCourseIds - Set of courseId strings that
+   *   existed BEFORE the user triggered generation. Pass `new Set()` when
+   *   the user has zero existing courses.
+   */
+  const startPolling = (existingCourseIds = new Set()) => {
     setIsPolling(true);
     setProgressState("extracting");
 
     let pollCount = 0;
-    const maxPolls = 120; // 5 minutes max (120 * 2.5 seconds)
+    const maxPolls = 120;
 
     const poll = async () => {
       try {
         pollCount++;
 
-        // Update progress state based on poll count (create meaningful UX)
+        // Update progress label based on elapsed poll count
         if (pollCount <= 2) {
           setProgressState("extracting");
         } else if (pollCount <= 6) {
@@ -28,18 +44,18 @@ export const useJobProgress = (getAccessTokenSilently) => {
           setProgressState("creating");
         }
 
-        // Fetch recent courses
         const token = await getAccessTokenSilently();
         const res = await api.get("/course/recent", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         const currentCourses = res.data.courses || [];
 
-        // Compare courses to detect new one
-        const newCourseDetected = detectNewCourse(previousCourses, currentCourses);
+        // Detect new course: any entry whose courseId is NOT in the pre-gen snapshot.
+        // Works when existingCourseIds is empty (first-ever course) or populated.
+        const newCourseDetected = currentCourses.find(
+          (course) => !existingCourseIds.has(course.courseId)
+        );
 
         if (newCourseDetected) {
           setNewCourse(newCourseDetected);
@@ -48,9 +64,8 @@ export const useJobProgress = (getAccessTokenSilently) => {
           return; // Stop polling
         }
 
-        // Continue polling if not found and haven't exceeded max polls
         if (pollCount < maxPolls) {
-          setTimeout(poll, 2500); // Poll every 2.5 seconds
+          setTimeout(poll, 2500);
         } else {
           setProgressState("failed");
           setIsPolling(false);
@@ -62,35 +77,7 @@ export const useJobProgress = (getAccessTokenSilently) => {
       }
     };
 
-    // Start polling
     poll();
-  };
-
-  const detectNewCourse = (previousCourses, currentCourses) => {
-    // If we have more courses now, find the new ones
-    if (currentCourses.length > previousCourses.length) {
-      // New course(s) were added - get the first one (most recent)
-      const newCourses = currentCourses.filter(
-        (current) =>
-          !previousCourses.some((prev) => prev.courseId === current.courseId)
-      );
-
-      if (newCourses.length > 0) {
-        return newCourses[0]; // Return the newly created course
-      }
-    }
-
-    // If same length but composition changed, find which one is different
-    if (currentCourses.length === previousCourses.length) {
-      for (let i = 0; i < currentCourses.length; i++) {
-        if (currentCourses[i].courseId !== previousCourses[i]?.courseId) {
-          // Course at position i is different - this is likely the new one
-          return currentCourses[i];
-        }
-      }
-    }
-
-    return null;
   };
 
   const resetProgress = () => {

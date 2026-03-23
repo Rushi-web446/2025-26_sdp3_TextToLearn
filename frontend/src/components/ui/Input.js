@@ -7,7 +7,6 @@ const Input = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Topic:", topic);
-    // here you can call API
   };
 
   return (

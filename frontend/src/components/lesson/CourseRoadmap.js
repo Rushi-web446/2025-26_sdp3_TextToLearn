@@ -16,17 +16,14 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
 
   const handleLessonClick = (module, lesson) => {
     navigate(`/course/${courseId}/module/${module.moduleIndex}/lesson/${lesson.lessonIndex}`);
-    onClose();
+    // Do NOT call onClose() here — that would redirect to home from CourseOverview
   };
 
   return (
     <>
-      {/* Overlay */}
       <div className="roadmap-overlay" onClick={onClose}></div>
 
-      {/* Roadmap Modal */}
       <div className="roadmap-modal">
-        {/* Header */}
         <div className="roadmap-header">
           <div>
             <h2 className="roadmap-title">{courseData.title}</h2>
@@ -37,7 +34,6 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
           </button>
         </div>
 
-        {/* Progress Bar */}
         <div className="roadmap-progress-section">
           <div className="progress-info">
             <span className="progress-label">Overall Progress</span>
@@ -59,7 +55,6 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
           </div>
         </div>
 
-        {/* Roadmap Content */}
         <div className="roadmap-content">
           <div className="modules-grid">
             {courseData.modules.map((module, idx) => {
@@ -71,7 +66,6 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
 
               return (
                 <div key={module._id} className={`module-card ${isCurrentModule ? 'current-module' : ''}`}>
-                  {/* Module Header */}
                   <div className="module-card-header">
                     <h3 className="module-name">
                       Module {module.moduleIndex}
@@ -81,10 +75,8 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
                     </div>
                   </div>
 
-                  {/* Module Title */}
                   <h4 className="module-title">{module.title}</h4>
 
-                  {/* Module Progress Bar */}
                   <div className="module-progress-bar">
                     <div
                       className="module-progress-fill"
@@ -92,7 +84,6 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
                     ></div>
                   </div>
 
-                  {/* Lessons in Module */}
                   <div className="lessons-container">
                     {module.lessons.map((lesson, lessonIdx) => {
                       const isCurrentLesson =
@@ -102,24 +93,14 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
                       return (
                         <div
                           key={lesson._id}
-                          className={`lesson-node ${lesson.isCompleted ? 'completed' : ''} ${
-                            isCurrentLesson ? 'current' : ''
-                          }`}
+                          className={`lesson-node ${isCurrentLesson ? 'current' : ''}`}
                           onClick={() => handleLessonClick(module, lesson)}
                           title={lesson.title}
                         >
-                          {/* Status Icon */}
-                          <span className="lesson-icon">
-                            {lesson.isCompleted ? (
-                              '✓'
-                            ) : isCurrentLesson ? (
-                              '▶'
-                            ) : (
-                              <span className="lesson-number">{lessonIdx + 1}</span>
-                            )}
+                          <span className={`lesson-icon ${isCurrentLesson ? 'current' : ''}`}>
+                            {isCurrentLesson ? '▶' : lesson.lessonIndex}
                           </span>
 
-                          {/* Lesson Info */}
                           <div className="lesson-details">
                             <span className="lesson-node-title">{lesson.title}</span>
                           </div>
@@ -133,19 +114,10 @@ const CourseRoadmap = ({ courseData, isOpen, onClose, currentModuleIndex, curren
           </div>
         </div>
 
-        {/* Legend */}
         <div className="roadmap-legend">
           <div className="legend-item">
             <span className="legend-icon current">▶</span>
             <span>Current Lesson</span>
-          </div>
-          <div className="legend-item">
-            <span className="legend-icon completed">✓</span>
-            <span>Completed</span>
-          </div>
-          <div className="legend-item">
-            <span className="legend-icon pending">1</span>
-            <span>Not Started</span>
           </div>
         </div>
       </div>

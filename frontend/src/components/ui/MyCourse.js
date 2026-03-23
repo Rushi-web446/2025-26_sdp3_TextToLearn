@@ -48,30 +48,6 @@ const MyCourse = ({ isAuthenticated, getAccessTokenSilently }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // useEffect(() => {
-  //   const fetchRecentCourses = async () => {
-  //     try {
-  //       // alert("tttttttttttttttttttttttt");
-
-  //       const token = await getAccessTokenSilently();
-
-  //       const response = await api.get("/course/recent", {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       });
-  //       setCourses(response.data);
-  //     } catch (err) {
-  //       console.error("Failed to fetch courses", err);
-  //       setError("Unable to load courses");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchRecentCourses();
-  // }, []);
-
 
 
 
