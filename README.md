@@ -1,4 +1,4 @@
-# 🚀 FlowGen — AI-Powered Learning Orchestration Platform
+# 🚀 FlowGen — AI-Powered Personalized Course Generator 
 
 > Transform any topic into a structured, multi-module learning experience — powered by asynchronous AI workflows and priority-driven execution.
 
